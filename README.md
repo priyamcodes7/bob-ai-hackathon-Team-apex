@@ -8,10 +8,10 @@
 
 | Field | Value |
 |---|---|
-| **Team Name** | [Your Team Name] |
-| **Track** | [AI / DevOps / Sustainability / Open] |
-| **Team Lead** | [Name] — [email@ibm.com] |
-| **Members** | [Name 1], [Name 2], [Name 3] |
+| **Team Name** | Team Apex |
+| **Track** | AI |
+| **Team Lead** | Dhariya - 25ce034@charusat.edu.in |
+| **Members** | Priyam, Krisha, Shrushti |
 
 ---
 
