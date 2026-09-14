@@ -64,10 +64,12 @@ Instead of providing only a congestion prediction, SmartPort AI connects predict
               │ 72-Hour Operational │
               │       Plan          │
               └─────────────────────┘
+```
+
 ## Key Design Decisions
 
 | Decision | Rationale |
-|---|---|
+| --- | --- |
 | **Use a trained ML model for congestion prediction** | Congestion prediction is the core intelligence of SmartPort AI. Using a trained model allows the system to generate predictions from operational inputs instead of relying only on fixed rules. |
 | **Separate prediction from optimisation** | Predicting congestion and deciding what to do about it are different tasks. Separating these components makes the system easier to test, improve, and extend. |
 | **Combine berth and crane optimisation** | Congestion decisions depend on more than berth utilisation. Crane availability also affects how effectively a vessel can be handled, so both resources are considered in the operational decision. |
