@@ -1,16 +1,16 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PortData(BaseModel):
-    # Existing fields — keep these for backward compatibility
-    vessel_count: int
-    container_count: int
-    avg_waiting_time: float
-    berth_utilization: float
+    # Existing ML features
+    vessel_count: int = Field(..., ge=1)
+    container_count: int = Field(..., ge=1)
+    avg_waiting_time: float = Field(..., ge=0)
+    berth_utilization: float = Field(..., ge=0, le=100)
 
-    # New optional fields
-    berth: Optional[str] = None
-    crane_availability: Optional[int] = None
-    vessel_arrival_density: Optional[float] = None
+    # Additional operational context
+    berth: Optional[str] = Field(default="B03")
+    crane_availability: Optional[int] = Field(default=None, ge=0)
+    vessel_arrival_density: Optional[float] = Field(default=None, ge=0)

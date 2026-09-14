@@ -1,6 +1,9 @@
 from typing import Optional
 
-from services.prediction import predict_congestion
+try:
+    from backend.services.prediction import predict_congestion
+except ModuleNotFoundError:
+    from services.prediction import predict_congestion
 
 
 def simulate_arrival_change(
@@ -14,9 +17,14 @@ def simulate_arrival_change(
 ):
     """
     Simulate the effect of changing a vessel's arrival time.
+
+    This is a scenario-based operational simulation.
+    It is not a causal or physically accurate port simulator.
     """
 
-    # Original scenario
+    # -----------------------------------------
+    # 1. Original scenario prediction
+    # -----------------------------------------
     original_prediction = predict_congestion(
         vessel_count=vessel_count,
         container_count=container_count,
@@ -24,9 +32,9 @@ def simulate_arrival_change(
         berth_utilization=berth_utilization
     )
 
-    # Simple operational scenario model:
-    # Earlier arrival increases temporary pressure.
-    # Later arrival slightly reduces temporary pressure.
+    # -----------------------------------------
+    # 2. Modify operational conditions
+    # -----------------------------------------
     arrival_pressure = arrival_time_change_hours * 2
 
     simulated_vessel_count = max(
@@ -36,17 +44,28 @@ def simulate_arrival_change(
 
     simulated_waiting_time = max(
         0.5,
-        round(avg_waiting_time + arrival_time_change_hours * 0.8, 1)
+        round(
+            avg_waiting_time
+            + arrival_time_change_hours * 0.8,
+            1
+        )
     )
 
     simulated_berth_utilization = max(
         0,
         min(
             100,
-            round(berth_utilization + arrival_time_change_hours * 1.5, 1)
+            round(
+                berth_utilization
+                + arrival_time_change_hours * 1.5,
+                1
+            )
         )
     )
 
+    # -----------------------------------------
+    # 3. Run ML model again on scenario
+    # -----------------------------------------
     simulated_prediction = predict_congestion(
         vessel_count=simulated_vessel_count,
         container_count=container_count,
@@ -59,22 +78,34 @@ def simulate_arrival_change(
 
     risk_changed = original_risk != simulated_risk
 
+    # -----------------------------------------
+    # 4. Explain scenario impact
+    # -----------------------------------------
     impact = (
-        f"Changing arrival time by {arrival_time_change_hours} hours "
-        f"changes berth pressure and waiting-time conditions."
+        f"Changing arrival time by "
+        f"{arrival_time_change_hours:.1f} hours changes "
+        f"berth pressure and waiting-time conditions."
     )
 
+    # -----------------------------------------
+    # 5. Recommended action
+    # -----------------------------------------
     if arrival_time_change_hours < 0:
+
         recommended_action = (
-            "Consider earlier arrival only if an alternative berth "
-            "or additional handling capacity is available."
+            "Consider earlier arrival only if an alternative "
+            "berth or additional handling capacity is available."
         )
+
     elif arrival_time_change_hours > 0:
+
         recommended_action = (
-            "Consider delaying arrival if the current berth remains "
-            "highly congested."
+            "Consider delaying arrival if the current berth "
+            "remains highly congested."
         )
+
     else:
+
         recommended_action = (
             "Keep the current arrival schedule."
         )
@@ -85,11 +116,13 @@ def simulate_arrival_change(
         "arrival_time_change_hours": arrival_time_change_hours,
         "original": {
             "congestion": original_risk,
-            "probability": original_prediction["probability"]
+            "probability": original_prediction["probability"],
+            "confidence": original_prediction["confidence"]
         },
         "simulated": {
             "congestion": simulated_risk,
             "probability": simulated_prediction["probability"],
+            "confidence": simulated_prediction["confidence"],
             "vessel_count": simulated_vessel_count,
             "avg_waiting_time": simulated_waiting_time,
             "berth_utilization": simulated_berth_utilization

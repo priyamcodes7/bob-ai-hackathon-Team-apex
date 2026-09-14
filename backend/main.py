@@ -1,21 +1,44 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import PortData
-from services.prediction import predict_congestion
-from services.explanation import explain_congestion
-from services.optimization import optimize_port
-from services.forecast import generate_forecast
-from services.crane_optimization import optimize_crane
-from services.what_if import simulate_arrival_change
-from services.alternative_routing import recommend_alternative_route
-from services.operational_plan import generate_operational_plan
+try:
+    # Works when imported from project root:
+    # python -m uvicorn backend.main:app
+    from backend.schemas import PortData
+    from backend.services.prediction import predict_congestion
+    from backend.services.explanation import explain_congestion
+    from backend.services.optimization import optimize_port
+    from backend.services.forecast import generate_forecast
+    from backend.services.crane_optimization import optimize_crane
+    from backend.services.what_if import simulate_arrival_change
+    from backend.services.alternative_routing import recommend_alternative_route
+    from backend.services.operational_plan import generate_operational_plan
+
+except ModuleNotFoundError:
+    # Works when started from backend directory:
+    # python -m uvicorn main:app
+    from schemas import PortData
+    from services.prediction import predict_congestion
+    from services.explanation import explain_congestion
+    from services.optimization import optimize_port
+    from services.forecast import generate_forecast
+    from services.crane_optimization import optimize_crane
+    from services.what_if import simulate_arrival_change
+    from services.alternative_routing import recommend_alternative_route
+    from services.operational_plan import generate_operational_plan
 
 
-app = FastAPI(title="SmartPort AI API")
+app = FastAPI(
+    title="SmartPort AI API",
+    description="Predict. Explain. Optimise. Act.",
+    version="1.0.0"
+)
 
 
-# Allow frontend to communicate with backend
+# ---------------------------------------------------------
+# CORS
+# ---------------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -29,6 +52,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ---------------------------------------------------------
+# BASIC ENDPOINTS
+# ---------------------------------------------------------
 
 @app.get("/")
 def home():
@@ -44,8 +71,10 @@ def health_check():
     }
 
 
-# Existing prediction endpoint
-# Kept for backward compatibility with the current frontend
+# ---------------------------------------------------------
+# EXISTING PREDICTION ENDPOINT
+# ---------------------------------------------------------
+
 @app.post("/predict")
 def predict(data: PortData):
 
@@ -83,7 +112,43 @@ def predict(data: PortData):
     }
 
 
-# 72-hour congestion forecast
+# ---------------------------------------------------------
+# STRUCTURED PREDICTION API
+# ---------------------------------------------------------
+
+@app.post("/api/predict")
+def api_predict(data: PortData):
+
+    prediction = predict_congestion(
+        data.vessel_count,
+        data.container_count,
+        data.avg_waiting_time,
+        data.berth_utilization
+    )
+
+    return {
+        "berth": data.berth or "B03",
+        "risk": prediction["congestion_level"].upper(),
+        "probability": prediction["probability"],
+        "confidence": prediction["confidence"],
+        "factors": prediction["factors"],
+        "ml_features_used": [
+            "vessel_count",
+            "container_count",
+            "avg_waiting_time",
+            "berth_utilization"
+        ],
+        "additional_operational_context": {
+            "crane_availability": data.crane_availability,
+            "vessel_arrival_density": data.vessel_arrival_density
+        }
+    }
+
+
+# ---------------------------------------------------------
+# 72-HOUR CONGESTION FORECAST
+# ---------------------------------------------------------
+
 @app.get("/api/congestion")
 def get_congestion_forecast(
     vessel_count: int = Query(80, ge=1),
@@ -92,6 +157,14 @@ def get_congestion_forecast(
     berth_utilization: float = Query(87, ge=0, le=100),
     berth: str = Query("B03")
 ):
+
+    prediction = predict_congestion(
+        vessel_count=vessel_count,
+        container_count=container_count,
+        avg_waiting_time=avg_waiting_time,
+        berth_utilization=berth_utilization
+    )
+
     forecast = generate_forecast(
         vessel_count=vessel_count,
         container_count=container_count,
@@ -102,19 +175,20 @@ def get_congestion_forecast(
     )
 
     return {
-        "horizon_hours": 72,
-        "input": {
-            "vessel_count": vessel_count,
-            "container_count": container_count,
-            "avg_waiting_time": avg_waiting_time,
-            "berth_utilization": berth_utilization,
-            "berth": berth
-        },
+        "berth": berth,
+        "risk": prediction["congestion_level"].upper(),
+        "probability": prediction["probability"],
+        "confidence": prediction["confidence"],
+        "reasons": prediction["factors"],
+        "forecast_hours": 72,
         "forecast": forecast
     }
 
 
-# Dynamic berth optimization
+# ---------------------------------------------------------
+# BERTH OPTIMISATION
+# ---------------------------------------------------------
+
 @app.get("/api/optimization")
 def get_optimization(
     vessel_count: int = Query(80, ge=1),
@@ -125,7 +199,8 @@ def get_optimization(
     vessel: str = Query("V204"),
     current_berth: str = Query("B03")
 ):
-    optimization = optimize_port(
+
+    return optimize_port(
         vessel_count=vessel_count,
         container_count=container_count,
         avg_waiting_time=avg_waiting_time,
@@ -135,10 +210,11 @@ def get_optimization(
         current_berth=current_berth
     )
 
-    return optimization
 
+# ---------------------------------------------------------
+# CRANE OPTIMISATION
+# ---------------------------------------------------------
 
-# Dynamic crane optimization
 @app.get("/api/crane")
 def get_crane_optimization(
     vessel: str = Query("V204"),
@@ -147,7 +223,8 @@ def get_crane_optimization(
     container_count: int = Query(400, ge=1),
     congestion_level: str = Query("High")
 ):
-    crane_optimization = optimize_crane(
+
+    return optimize_crane(
         vessel=vessel,
         current_berth=current_berth,
         recommended_berth=recommended_berth,
@@ -155,10 +232,11 @@ def get_crane_optimization(
         congestion_level=congestion_level
     )
 
-    return crane_optimization
 
+# ---------------------------------------------------------
+# WHAT-IF SIMULATION
+# ---------------------------------------------------------
 
-# What-if simulation
 @app.post("/api/what-if")
 def what_if_simulation(
     vessel: str = Query("V204"),
@@ -169,7 +247,8 @@ def what_if_simulation(
     berth_utilization: float = Query(87, ge=0, le=100),
     berth: str = Query("B03")
 ):
-    simulation = simulate_arrival_change(
+
+    return simulate_arrival_change(
         vessel=vessel,
         arrival_time_change_hours=arrival_time_change_hours,
         vessel_count=vessel_count,
@@ -179,10 +258,11 @@ def what_if_simulation(
         berth=berth
     )
 
-    return simulation
 
+# ---------------------------------------------------------
+# 72-HOUR OPERATIONAL PLAN
+# ---------------------------------------------------------
 
-# 72-hour operational plan
 @app.get("/api/plan")
 def get_operational_plan(
     vessel_count: int = Query(80, ge=1),
@@ -192,7 +272,7 @@ def get_operational_plan(
     berth: str = Query("B03"),
     vessel: str = Query("V204")
 ):
-    # 1. Generate 72-hour forecast
+
     forecast = generate_forecast(
         vessel_count=vessel_count,
         container_count=container_count,
@@ -202,17 +282,15 @@ def get_operational_plan(
         hours=72
     )
 
-    # 2. Use current prediction for optimization
     prediction = predict_congestion(
-        vessel_count,
-        container_count,
-        avg_waiting_time,
-        berth_utilization
+        vessel_count=vessel_count,
+        container_count=container_count,
+        avg_waiting_time=avg_waiting_time,
+        berth_utilization=berth_utilization
     )
 
     congestion_level = prediction["congestion_level"]
 
-    # 3. Optimize berth
     optimization = optimize_port(
         vessel_count=vessel_count,
         container_count=container_count,
@@ -225,7 +303,6 @@ def get_operational_plan(
 
     recommended_berth = optimization["recommended_berth"]
 
-    # 4. Optimize crane
     crane_optimization = optimize_crane(
         vessel=vessel,
         current_berth=berth,
@@ -233,9 +310,6 @@ def get_operational_plan(
         container_count=container_count,
         congestion_level=congestion_level
     )
-
-    # 5. Alternative route
-    current_projected_utilization = berth_utilization
 
     recommended_projected_utilization = next(
         (
@@ -251,12 +325,11 @@ def get_operational_plan(
         current_berth=berth,
         recommended_berth=recommended_berth,
         congestion_level=congestion_level,
-        current_utilization=current_projected_utilization,
+        current_utilization=berth_utilization,
         recommended_utilization=recommended_projected_utilization,
         avg_waiting_time=avg_waiting_time
     )
 
-    # 6. Generate final plan
     plan = generate_operational_plan(
         forecast=forecast,
         optimization=optimization,

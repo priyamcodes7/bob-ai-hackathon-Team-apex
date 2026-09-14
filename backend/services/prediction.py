@@ -2,6 +2,7 @@ import joblib
 import pandas as pd
 from pathlib import Path
 
+
 # Load the trained ML model
 model_path = Path(__file__).resolve().parents[1] / "congestion_model.pkl"
 model = joblib.load(model_path)
@@ -13,7 +14,7 @@ def predict_congestion(
     avg_waiting_time: float,
     berth_utilization: float
 ):
-    # Create input DataFrame
+    # The current Random Forest model was trained only on these 4 features.
     input_data = pd.DataFrame([
         {
             "vessel_count": vessel_count,
@@ -27,39 +28,60 @@ def predict_congestion(
     prediction = model.predict(input_data)
     congestion_level = str(prediction[0])
 
-    # Get actual ML probabilities
-    probability = model.predict_proba(input_data)[0]
+    # Use the model's actual class probability.
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba(input_data)[0]
+        classes = model.classes_.tolist()
 
-    # Find the probability of the predicted class
-    classes = model.classes_.tolist()
-    predicted_index = classes.index(congestion_level)
-    confidence = float(probability[predicted_index])
+        predicted_index = classes.index(congestion_level)
+        confidence = float(probabilities[predicted_index])
+    else:
+        # Fallback only if the loaded model has no probability support.
+        confidence = 1.0
 
-    # Important input factors
+    # Important operational factors
     factors = []
 
     if berth_utilization >= 80:
-        factors.append(f"High berth utilization ({berth_utilization:.0f}%)")
+        factors.append(
+            f"High berth utilization ({berth_utilization:.0f}%)"
+        )
     elif berth_utilization >= 60:
-        factors.append(f"Moderate berth utilization ({berth_utilization:.0f}%)")
+        factors.append(
+            f"Moderate berth utilization ({berth_utilization:.0f}%)"
+        )
 
     if avg_waiting_time >= 15:
-        factors.append(f"High average waiting time ({avg_waiting_time:.1f} hours)")
+        factors.append(
+            f"High average waiting time ({avg_waiting_time:.1f} hours)"
+        )
     elif avg_waiting_time >= 8:
-        factors.append(f"Moderate average waiting time ({avg_waiting_time:.1f} hours)")
+        factors.append(
+            f"Moderate average waiting time ({avg_waiting_time:.1f} hours)"
+        )
 
     if container_count >= 350:
-        factors.append(f"High container volume ({container_count})")
+        factors.append(
+            f"High container volume ({container_count})"
+        )
     elif container_count >= 200:
-        factors.append(f"Moderate container volume ({container_count})")
+        factors.append(
+            f"Moderate container volume ({container_count})"
+        )
 
     if vessel_count >= 70:
-        factors.append(f"High vessel count ({vessel_count})")
+        factors.append(
+            f"High vessel count ({vessel_count})"
+        )
     elif vessel_count >= 40:
-        factors.append(f"Moderate vessel count ({vessel_count})")
+        factors.append(
+            f"Moderate vessel count ({vessel_count})"
+        )
 
     if not factors:
-        factors.append("Port conditions are currently within normal limits")
+        factors.append(
+            "Port conditions are currently within normal limits"
+        )
 
     return {
         "congestion_level": congestion_level,
