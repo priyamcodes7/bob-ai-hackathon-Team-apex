@@ -11,7 +11,7 @@
 | **Team Name** | Team Apex |
 | **Track** | AI |
 | **Team Lead** | Dhariya - 25ce034@charusat.edu.in |
-| **Members** | Priyam, Krisha, Shrushti |
+| **Members** | Priyam, Krisha, Srushti |
 
 ---
 
