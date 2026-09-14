@@ -2,40 +2,65 @@
 
 ## What We Built
 
-[Describe your solution in plain language. Avoid jargon — write as if explaining to a smart colleague unfamiliar with your tech stack.]
+SmartPort AI is an AI-powered decision-support platform for port operations teams. It helps operators identify where congestion is likely to occur, understand the operational factors behind the risk, and decide what action should be taken.
+
+Instead of providing only a congestion prediction, SmartPort AI connects prediction with explanation, berth and crane optimisation, what-if analysis, and a 72-hour operational plan. This gives port operators a single workflow for moving from **prediction to action**.
 
 ## How It Works
 
-[Explain the core mechanism step by step. A numbered list or simple flow works well here.]
+1. **Operational conditions are provided to the system:** The platform works with operational inputs such as vessel count, container volume, average waiting time, and berth utilisation.
 
-1. [Step 1: e.g., "User connects their GitHub repository via OAuth"]
-2. [Step 2: e.g., "The system ingests pipeline logs and feeds them to watsonx.ai"]
-3. [Step 3: e.g., "An anomaly score is computed and displayed on the dashboard"]
-4. [Step 4: e.g., "Alerts are sent to Slack when the score exceeds a threshold"]
+2. **Congestion risk is predicted:** A trained machine-learning model analyses the operational inputs and predicts the congestion level and prediction probability.
+
+3. **The prediction is explained:** SmartPort AI identifies important operational factors contributing to the predicted congestion, such as high berth utilisation, vessel volume, container volume, or waiting time.
+
+4. **Future congestion is forecast:** The system generates a 72-hour congestion forecast to help operators anticipate periods of increasing operational pressure.
+
+5. **Berth and crane resources are optimised:** The optimisation logic evaluates berth utilisation, capacity, and crane availability to recommend a more suitable berth and crane assignment.
+
+6. **Alternative operational routing is considered:** If another berth provides a meaningful operational advantage, the system can recommend moving the vessel to an alternative berth.
+
+7. **What-if scenarios can be evaluated:** Operators can simulate changes in vessel arrival conditions and compare the resulting congestion risk with the original scenario.
+
+8. **A 72-hour action plan is generated:** The prediction, optimisation, crane assignment, and routing results are combined into a time-based operational plan containing recommended actions.
+
+9. **The operator takes action:** The dashboard presents the results in a single interface so the operator can understand the situation and act on the recommendations.
 
 ## Architecture Diagram
 
-> See [`architecture.md`](architecture.md) for the detailed diagram.
+> See [`architecture.md`](architecture.md) for the detailed architecture and data flow.
 
-[Optionally include a simple ASCII or Mermaid diagram here for quick reference.]
-
-```
-[User] → [Frontend: React] → [API: FastAPI] → [watsonx.ai] → [Dashboard]
-                                    ↓
-                             [PostgreSQL DB]
-```
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|---|---|
-| [e.g., Used watsonx.ai for anomaly detection] | [e.g., Pre-trained models reduced time-to-value vs. building from scratch] |
-| [Decision 2] | [Rationale 2] |
-| [Decision 3] | [Rationale 3] |
-
-## IBM Technologies Used
-
-[Explain specifically HOW you used each IBM technology — not just that you used it.]
-
-- **[IBM Tech 1, e.g., watsonx.ai]:** [How it was used — e.g., "Used the `ibm/granite-13b-instruct-v2` model via the Python SDK to classify anomaly types from log text."]
-- **[IBM Tech 2]:** [How it was used]
+```text
+                    SmartPort AI
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │   React Frontend    │
+              │      + Vite         │
+              └──────────┬──────────┘
+                         │ REST API
+                         ▼
+              ┌─────────────────────┐
+              │   FastAPI Backend   │
+              └──────────┬──────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+   ┌────────────┐ ┌──────────────┐ ┌──────────────┐
+   │ ML         │ │ Optimisation │ │ Scenario /   │
+   │ Prediction │ │ & Resources  │ │ Forecasting  │
+   └─────┬──────┘ └──────┬───────┘ └──────┬───────┘
+         │               │                │
+         └───────────────┼────────────────┘
+                         ▼
+              ┌─────────────────────┐
+              │ Decision Support    │
+              │ Results             │
+              └──────────┬──────────┘
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │ 72-Hour Operational │
+              │       Plan          │
+              └─────────────────────┘
