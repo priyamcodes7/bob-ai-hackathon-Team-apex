@@ -10,34 +10,37 @@
 |---|---|
 | **Team Name** | Team Apex |
 | **Track** | AI |
-| **Team Lead** | Dhariya - 25ce034@charusat.edu.in |
+| **Team Lead** | Dhariy - 25ce034@charusat.edu.in |
 | **Members** | Priyam, Krisha, Srushti |
 
 ---
 
 ## 🎯 Problem Statement
 
-> In 2–3 sentences: What problem does your project solve? Who experiences this problem?
+Port operations managers face the challenge of anticipating container congestion and making timely decisions about vessel berthing, crane allocation, and operational scheduling. High berth utilisation, vessel arrival density, container volume, and waiting times can create congestion that leads to vessel delays and inefficient use of port resources.
 
-[Describe the real-world problem your project addresses. Be specific about who the user is and what pain point they face.]
+SmartPort AI addresses this problem by helping port operations teams predict congestion before it becomes critical and make informed operational decisions.
 
 ---
 
 ## 💡 Solution
 
-> In 2–3 sentences: What did you build? How does it solve the problem above?
+SmartPort AI is an AI-powered port operations decision-support platform that predicts container congestion, explains the factors contributing to the risk, recommends better berth and crane assignments, and generates a 72-hour operational plan.
 
-[Describe your solution clearly. Explain the core mechanism — what makes it work.]
+The platform connects prediction → explanation → optimisation → action, allowing a port operations manager to move from identifying a congestion hotspot to taking a recommended operational action.
 
 ---
 
 ## ✨ Key Features
 
-- **Feature 1:** [Brief description — e.g., "Real-time anomaly detection using watsonx.ai"]
-- **Feature 2:** [Brief description]
-- **Feature 3:** [Brief description]
-- **Feature 4:** [Optional]
-- **Feature 5:** [Optional]
+Congestion Risk Prediction: Uses a trained machine-learning model to estimate port/berth congestion risk from operational inputs such as vessel count, container volume, waiting time, and berth utilisation.
+72-Hour Congestion Forecast: Generates an hourly congestion outlook over the next 72 hours to help operators anticipate upcoming pressure.
+Explainable Congestion Analysis: Shows the operational factors contributing to a predicted congestion level instead of presenting the prediction as a black box.
+Berth Optimisation: Evaluates berth utilisation, capacity, and crane availability to recommend a more suitable berth and estimate potential waiting-time reduction.
+Crane Optimisation: Considers crane availability and operational demand when recommending crane assignments.
+72-Hour Operational Plan: Converts prediction and optimisation results into a time-based operational action plan.
+What-If Simulation: Allows operators to explore how changes in vessel arrival scenarios could affect congestion risk and recommended actions.
+Alternative Berth Routing: Identifies an alternative berth when the current berth is projected to experience higher congestion.
 
 ---
 
@@ -45,11 +48,11 @@
 
 | Category | Technologies |
 |---|---|
-| **Languages** | [e.g., Python, TypeScript] |
-| **Frameworks** | [e.g., FastAPI, React] |
-| **IBM Technologies** | [e.g., watsonx.ai, IBM Bob, IBM Cloud] |
-| **Databases** | [e.g., PostgreSQL, Redis] |
-| **Other** | [e.g., Docker, GitHub Actions] |
+| **Languages** | Python, TypeScript |
+| **Frameworks** | FastAPI, React, Vite |
+| **IBM Technologies** | IBM Bob |
+| **Databases** | None |
+| **Other** | Scikit-learn, Pandas, Joblib, GitHub, Vercel, GitHub Actions |
 
 ---
 
