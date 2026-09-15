@@ -1,4 +1,4 @@
-﻿from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import MCPServer
 
 from backend.services.prediction import predict_congestion
 from backend.services.forecast import generate_forecast
@@ -49,7 +49,6 @@ def smartport_congestion(
         "berth": berth,
         "risk": prediction["congestion_level"].upper(),
         "probability": prediction["probability"],
-        "confidence": prediction["confidence"],
         "reasons": prediction["factors"],
         "forecast_hours": 72,
         "forecast": forecast,
