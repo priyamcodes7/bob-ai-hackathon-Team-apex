@@ -1,37 +1,82 @@
-from typing import List, Dict
+from typing import Dict, List
+
+from .risk import normalize_risk_level
+
+
+def _group_consecutive_hours(hours: List[int]) -> List[tuple]:
+    """
+    Convert individual forecast hours into consecutive risk windows.
+
+    Example:
+    [5, 6, 7, 40, 41] -> [(5, 7), (40, 41)]
+    """
+
+    if not hours:
+        return []
+
+    sorted_hours = sorted(set(hours))
+
+    windows = []
+    start = sorted_hours[0]
+    previous = sorted_hours[0]
+
+    for hour in sorted_hours[1:]:
+        if hour == previous + 1:
+            previous = hour
+        else:
+            windows.append((start, previous))
+            start = hour
+            previous = hour
+
+    windows.append((start, previous))
+
+    return windows
+
+
+def _format_window(start: int, end: int) -> str:
+    if start == end:
+        return f"{start}h"
+
+    return f"{start}-{end}h"
 
 
 def generate_operational_plan(
     forecast: List[Dict],
     optimization: Dict,
     crane_optimization: Dict,
-    routing: Dict
+    routing: Dict,
 ):
     """
-    Generate an actionable 72-hour operational plan
-    from prediction and optimization results.
+    Generate a 72-hour operational action plan from the actual forecast.
+
+    The plan:
+    - derives risk windows from forecast hours
+    - keeps separated risk periods separate
+    - uses actual forecast timing
+    - avoids unconditional actions
+    - marks action priority
     """
 
     actions = []
 
     recommended_berth = optimization.get(
         "recommended_berth",
-        optimization.get("current_berth")
+        optimization.get("current_berth"),
     )
 
     current_berth = optimization.get(
         "current_berth",
-        "Unknown"
+        "Unknown",
     )
 
     vessel = optimization.get(
         "vessel",
-        "Unknown"
+        "Unknown",
     )
 
     wait_reduction = optimization.get(
         "estimated_wait_reduction_minutes",
-        0
+        0,
     )
 
     recommended_crane = crane_optimization.get(
@@ -40,143 +85,291 @@ def generate_operational_plan(
 
     recommended_route = routing.get(
         "recommended_route",
-        recommended_berth
+        recommended_berth,
     )
 
-    # Find high-risk forecast periods
-    high_risk_hours = [
-        item["hour"]
-        for item in forecast
-        if item.get("risk", "").upper() == "HIGH"
-    ]
+    # ---------------------------------------------------------------
+    # Normalize risk values from the forecast.
+    # ---------------------------------------------------------------
+    high_risk_hours = []
+    medium_risk_hours = []
+    critical_risk_hours = []
 
-    # Find medium-risk forecast periods
-    medium_risk_hours = [
-        item["hour"]
-        for item in forecast
-        if item.get("risk", "").upper() == "MEDIUM"
-    ]
+    for item in forecast:
+        try:
+            risk = normalize_risk_level(
+                item.get("risk", "MEDIUM")
+            )
+        except ValueError:
+            continue
 
-    # Action 1: berth reassignment
-    if recommended_berth != current_berth:
+        hour = int(item.get("hour", 0))
+
+        if risk == "CRITICAL":
+            critical_risk_hours.append(hour)
+        elif risk == "HIGH":
+            high_risk_hours.append(hour)
+        elif risk == "MEDIUM":
+            medium_risk_hours.append(hour)
+
+    # ---------------------------------------------------------------
+    # Determine current forecast risk for prioritization.
+    # ---------------------------------------------------------------
+    current_forecast = next(
+        (
+            item
+            for item in forecast
+            if int(item.get("hour", -1)) == 0
+        ),
+        None,
+    )
+
+    current_risk = "MEDIUM"
+
+    if current_forecast:
+        try:
+            current_risk = normalize_risk_level(
+                current_forecast.get("risk", "MEDIUM")
+            )
+        except ValueError:
+            current_risk = "MEDIUM"
+
+    # ---------------------------------------------------------------
+    # 1. Berth reassignment.
+    #
+    # This is an immediate action because it comes directly from
+    # the optimization decision.
+    # ---------------------------------------------------------------
+    if (
+        recommended_berth
+        and current_berth
+        and recommended_berth != current_berth
+    ):
+        priority = (
+            "CRITICAL"
+            if current_risk == "CRITICAL"
+            else "HIGH"
+        )
+
         actions.append(
             {
-                "time": "0-6h",
+                "time": "0h",
+                "priority": priority,
                 "action": (
-                    f"Reassign {vessel} from {current_berth} "
-                    f"to {recommended_berth}"
+                    f"Reassign {vessel} from "
+                    f"{current_berth} to {recommended_berth}."
                 ),
                 "reason": optimization.get(
                     "reason",
-                    "Reduce projected berth congestion"
+                    "Reduce projected berth congestion.",
                 ),
                 "expected_impact": (
                     f"Estimated waiting-time reduction: "
-                    f"{wait_reduction} minutes"
-                )
+                    f"{wait_reduction} minutes."
+                ),
             }
         )
 
-    # Action 2: crane assignment
+    # ---------------------------------------------------------------
+    # 2. Crane assignment.
+    # ---------------------------------------------------------------
     if recommended_crane:
+        priority = (
+            "CRITICAL"
+            if current_risk == "CRITICAL"
+            else "HIGH"
+        )
+
         actions.append(
             {
-                "time": "0-6h",
+                "time": "0h",
+                "priority": priority,
                 "action": (
                     f"Assign crane {recommended_crane} "
-                    f"to {vessel} at {recommended_berth}"
+                    f"to {vessel} at {recommended_berth}."
                 ),
                 "reason": crane_optimization.get(
                     "reason",
-                    "Improve handling capacity"
+                    "Improve container handling capacity.",
                 ),
                 "expected_impact": crane_optimization.get(
                     "expected_impact",
-                    "Improve container handling"
-                )
+                    "Support container handling.",
+                ),
             }
         )
 
-    # Action 3: alternative routing
-    if recommended_route != current_berth:
+    # ---------------------------------------------------------------
+    # 3. Alternative operational berth routing.
+    # ---------------------------------------------------------------
+    reroute_recommended = routing.get(
+        "reroute_recommended",
+        recommended_route != current_berth,
+    )
+
+    if (
+        reroute_recommended
+        and recommended_route
+        and recommended_route != current_berth
+    ):
         actions.append(
             {
-                "time": "0-12h",
+                "time": "0h",
+                "priority": "HIGH",
                 "action": (
                     f"Route {vessel} operationally toward "
-                    f"{recommended_route}"
+                    f"{recommended_route}."
                 ),
                 "reason": routing.get(
                     "reason",
-                    "Reduce congestion pressure"
+                    "Reduce operational berth pressure.",
                 ),
                 "expected_impact": routing.get(
                     "expected_impact",
-                    "Lower berth pressure"
-                )
+                    "Lower berth pressure and waiting time.",
+                ),
             }
         )
 
-    # Action 4: high-risk monitoring
-    if high_risk_hours:
-        first_high = min(high_risk_hours)
-        last_high = max(high_risk_hours)
-
+    # ---------------------------------------------------------------
+    # 4. CRITICAL forecast windows.
+    # ---------------------------------------------------------------
+    for start, end in _group_consecutive_hours(
+        critical_risk_hours
+    ):
         actions.append(
             {
-                "time": f"{first_high}-{last_high}h",
+                "time": _format_window(start, end),
+                "priority": "CRITICAL",
                 "action": (
-                    "Activate high-congestion monitoring "
-                    "and prioritize delayed vessels"
+                    "Activate critical congestion response "
+                    "and prioritize delayed vessels."
                 ),
                 "reason": (
-                    "The 72-hour forecast contains high-risk "
-                    "congestion periods."
+                    f"The forecast indicates CRITICAL congestion "
+                    f"during {_format_window(start, end)}."
+                ),
+                "expected_impact": (
+                    "Reduce queue growth and protect berth throughput."
+                ),
+            }
+        )
+
+    # ---------------------------------------------------------------
+    # 5. HIGH forecast windows.
+    #
+    # Separated periods remain separate.
+    # ---------------------------------------------------------------
+    for start, end in _group_consecutive_hours(
+        high_risk_hours
+    ):
+        actions.append(
+            {
+                "time": _format_window(start, end),
+                "priority": "HIGH",
+                "action": (
+                    "Activate high-congestion monitoring "
+                    "and prioritize delayed vessels."
+                ),
+                "reason": (
+                    f"The forecast indicates HIGH congestion "
+                    f"during {_format_window(start, end)}."
                 ),
                 "expected_impact": (
                     "Reduce vessel waiting and prevent "
                     "additional berth buildup."
-                )
+                ),
             }
         )
 
-    # Action 5: medium-risk preparation
-    if medium_risk_hours:
+    # ---------------------------------------------------------------
+    # 6. MEDIUM forecast windows.
+    # ---------------------------------------------------------------
+    for start, end in _group_consecutive_hours(
+        medium_risk_hours
+    ):
         actions.append(
             {
-                "time": "24-48h",
+                "time": _format_window(start, end),
+                "priority": "MEDIUM",
                 "action": (
-                    "Prepare additional handling resources "
-                    "and monitor berth utilization"
+                    "Monitor berth utilization and prepare "
+                    "additional handling capacity."
                 ),
                 "reason": (
-                    "Medium-risk periods may develop into "
-                    "higher congestion."
+                    f"The forecast indicates MEDIUM congestion "
+                    f"during {_format_window(start, end)}."
                 ),
                 "expected_impact": (
                     "Improve readiness before congestion increases."
-                )
+                ),
             }
         )
 
-    # Action 6: container movement
-    actions.append(
-        {
-            "time": "48-72h",
-            "action": (
-                "Optimize container movement and yard flow"
-            ),
-            "reason": (
-                "Reduce accumulation of containers near "
-                "high-utilization berths."
-            ),
-            "expected_impact": (
-                "Maintain smoother container throughput."
-            )
-        }
+    # ---------------------------------------------------------------
+    # 7. Container movement is conditional.
+    #
+    # Only add it when forecast/optimization indicates meaningful
+    # pressure instead of always adding the same action.
+    # ---------------------------------------------------------------
+    high_or_critical = bool(
+        high_risk_hours or critical_risk_hours
     )
+
+    high_container_load = False
+
+    for item in forecast:
+        conditions = item.get("conditions", {})
+
+        if int(conditions.get("container_count", 0)) >= 350:
+            high_container_load = True
+            break
+
+    if high_or_critical and high_container_load:
+        risk_priority = (
+            "CRITICAL"
+            if critical_risk_hours
+            else "HIGH"
+        )
+
+        actions.append(
+            {
+                "time": "48-72h",
+                "priority": risk_priority,
+                "action": (
+                    "Optimize container movement and yard flow."
+                ),
+                "reason": (
+                    "High forecast congestion is combined with "
+                    "elevated container workload."
+                ),
+                "expected_impact": (
+                    "Reduce container accumulation and maintain "
+                    "smoother throughput."
+                ),
+            }
+        )
+
+    # ---------------------------------------------------------------
+    # 8. If no operational action is required.
+    # ---------------------------------------------------------------
+    if not actions:
+        actions.append(
+            {
+                "time": "0-72h",
+                "priority": "LOW",
+                "action": "Continue normal port operations.",
+                "reason": (
+                    "The forecast does not indicate a significant "
+                    "operational intervention."
+                ),
+                "expected_impact": (
+                    "Maintain normal vessel and container flow."
+                ),
+            }
+        )
 
     return {
         "horizon_hours": 72,
-        "actions": actions
+        "actions": actions,
     }

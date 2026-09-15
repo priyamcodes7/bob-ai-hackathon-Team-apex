@@ -1,34 +1,56 @@
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+from .risk import normalize_risk_level
 
 
-# Sample berth data.
-# Later this can come from a database or real port system.
 DEFAULT_BERTHS = [
     {
         "berth": "B01",
         "capacity": 90,
         "current_utilization": 72,
-        "crane_availability": 3
+        "crane_availability": 3,
     },
     {
         "berth": "B02",
         "capacity": 85,
         "current_utilization": 68,
-        "crane_availability": 2
+        "crane_availability": 2,
     },
     {
         "berth": "B03",
         "capacity": 95,
         "current_utilization": 87,
-        "crane_availability": 1
+        "crane_availability": 1,
     },
     {
         "berth": "B04",
         "capacity": 90,
         "current_utilization": 61,
-        "crane_availability": 3
-    }
+        "crane_availability": 3,
+    },
 ]
+
+MAX_LOAD_FACTOR = 15.0
+CRANE_WEIGHT = 5.0
+HEADROOM_WEIGHT = 0.20
+WAIT_REDUCTION_MULTIPLIER = 1.8
+
+
+def _build_berth_state(
+    berths: List[Dict],
+    current_berth: str,
+    berth_utilization: float,
+) -> List[Dict]:
+    result = []
+
+    for item in berths:
+        berth = dict(item)
+
+        if berth["berth"] == current_berth:
+            berth["current_utilization"] = float(berth_utilization)
+
+        result.append(berth)
+
+    return result
 
 
 def optimize_port(
@@ -39,160 +61,149 @@ def optimize_port(
     congestion_level: str,
     vessel: Optional[str] = None,
     current_berth: Optional[str] = None,
-    berths: Optional[List[Dict]] = None
+    berths: Optional[List[Dict]] = None,
 ):
     """
-    Recommend the best berth based on utilization,
-    crane availability and congestion.
+    Multi-factor operational berth recommendation heuristic.
+
+    This is simulated/demo logic, not a live port optimizer.
     """
 
-    # Keep existing behavior when no detailed berth information is given.
-    if berths is None:
-        berths = DEFAULT_BERTHS
-
-    current_berth = current_berth or "B03"
     vessel = vessel or "Vessel-001"
+    current_berth = current_berth or "B03"
+    risk = normalize_risk_level(congestion_level)
 
-    # Calculate projected utilization.
-    # Higher vessel/container load increases pressure on the berth.
-    load_factor = min(
-        15,
-        (vessel_count * 0.05) + (container_count * 0.01)
+    source_berths = berths if berths is not None else DEFAULT_BERTHS
+
+    working_berths = _build_berth_state(
+        source_berths,
+        current_berth,
+        berth_utilization,
     )
 
-    berth_scores = []
+    load_factor = min(
+        MAX_LOAD_FACTOR,
+        (vessel_count * 0.05) + (container_count * 0.01),
+    )
 
-    for berth_data in berths:
-        berth_name = berth_data["berth"]
-        current_util = float(berth_data["current_utilization"])
-        capacity = float(berth_data["capacity"])
-        crane_count = int(berth_data["crane_availability"])
+    analysis = []
 
-        projected_util = min(
-            100,
-            current_util + load_factor
-        )
+    for berth in working_berths:
+        name = berth["berth"]
+        utilization = float(berth["current_utilization"])
+        capacity = float(berth["capacity"])
+        cranes = int(berth["crane_availability"])
 
-        # Lower utilization is better.
-        utilization_score = 100 - projected_util
+        projected = min(100.0, utilization + load_factor)
+        headroom = max(0.0, capacity - projected)
 
-        # More available cranes are better.
-        crane_score = crane_count * 5
+        utilization_score = 100.0 - projected
+        crane_score = cranes * CRANE_WEIGHT
+        headroom_score = headroom * HEADROOM_WEIGHT
 
-        # Capacity safety.
-        capacity_score = max(0, capacity - projected_util)
-
-        total_score = (
+        score = (
             utilization_score
             + crane_score
-            + (capacity_score * 0.2)
+            + headroom_score
         )
 
-        berth_scores.append(
+        analysis.append(
             {
-                "berth": berth_name,
-                "projected_utilization": round(projected_util, 1),
-                "crane_availability": crane_count,
-                "score": round(total_score, 2)
+                "berth": name,
+                "projected_utilization": round(projected, 1),
+                "crane_availability": cranes,
+                "capacity_limit": round(capacity, 1),
+                "capacity_headroom": round(headroom, 1),
+                "score": round(score, 2),
             }
         )
 
-    # Find best available berth.
     recommended = max(
-        berth_scores,
-        key=lambda item: item["score"]
+        analysis,
+        key=lambda item: item["score"],
     )
 
-    recommended_berth = recommended["berth"]
     current_data = next(
         (
-            item for item in berths
+            item
+            for item in analysis
             if item["berth"] == current_berth
         ),
-        None
+        None,
     )
 
-    if current_data:
-        current_projected_util = min(
-            100,
-            float(current_data["current_utilization"]) + load_factor
-        )
-    else:
-        current_projected_util = berth_utilization
+    current_projected = (
+        current_data["projected_utilization"]
+        if current_data
+        else min(100.0, berth_utilization + load_factor)
+    )
 
-    # Estimate wait reduction.
     utilization_difference = max(
-        0,
-        current_projected_util -
-        recommended["projected_utilization"]
+        0.0,
+        current_projected
+        - recommended["projected_utilization"],
     )
 
     estimated_wait_reduction = round(
-        utilization_difference * 1.8
+        utilization_difference * WAIT_REDUCTION_MULTIPLIER
     )
 
-    # Build reason.
+    recommended_berth = recommended["berth"]
+
     if recommended_berth != current_berth:
         reason = (
             f"{recommended_berth} has lower projected utilization "
-            f"and better available crane capacity than {current_berth}."
+            f"and better available crane capacity than "
+            f"{current_berth}."
         )
     else:
         reason = (
             f"{current_berth} remains the best available berth "
-            f"based on projected utilization and crane capacity."
+            f"based on utilization, crane availability, "
+            f"and capacity headroom."
         )
 
-    actions = []
-
-    if congestion_level == "High":
-        actions.append(
-            "Prioritize vessels with the longest waiting time"
-        )
-
-        actions.append(
-            "Optimize container movement to reduce yard congestion"
-        )
+    if risk in {"HIGH", "CRITICAL"}:
+        actions = [
+            "Prioritize vessels with the longest waiting time."
+        ]
 
         if recommended_berth != current_berth:
             actions.append(
-                f"Reassign {vessel} from {current_berth} to "
-                f"{recommended_berth}"
+                f"Reassign {vessel} from {current_berth} "
+                f"to {recommended_berth}."
             )
 
         if container_count >= 350:
             actions.append(
-                "Increase container handling resources"
+                "Increase container handling resources."
             )
 
-    elif congestion_level == "Medium":
-        actions.append(
-            "Monitor berth utilization closely"
-        )
-        actions.append(
-            "Optimize vessel scheduling"
-        )
+    elif risk == "MEDIUM":
+        actions = [
+            "Monitor berth utilization closely.",
+            "Optimize vessel scheduling.",
+        ]
 
         if recommended_berth != current_berth:
             actions.append(
-                f"Consider moving {vessel} to {recommended_berth}"
+                f"Consider moving {vessel} to "
+                f"{recommended_berth}."
             )
 
     else:
-        actions.append(
-            "Continue normal port operations"
-        )
-        actions.append(
-            "Monitor vessel and container flow"
-        )
+        actions = [
+            "Continue normal port operations.",
+            "Monitor vessel and container flow.",
+        ]
 
     return {
-        "congestion_level": congestion_level,
+        "congestion_level": risk,
         "vessel": vessel,
         "current_berth": current_berth,
         "recommended_berth": recommended_berth,
         "reason": reason,
         "estimated_wait_reduction_minutes": estimated_wait_reduction,
-        "berth_analysis": berth_scores,
-        "recommended_actions": actions
+        "berth_analysis": analysis,
+        "recommended_actions": actions,
     }

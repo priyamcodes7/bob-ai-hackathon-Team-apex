@@ -1,12 +1,12 @@
-﻿{
+{
   "mcpServers": {
     "smartport-ai": {
-      "command": "C:\\Users\\dhair\\Downloads\\bob-ai-hackathon-Team-apex-main\\bob-ai-hackathon-Team-apex-main\\backend\\venv\\Scripts\\python.exe",
+      "command": "python",
       "args": [
         "-m",
         "backend.mcp_server"
       ],
-      "cwd": "C:\\Users\\dhair\\Downloads\\bob-ai-hackathon-Team-apex-main\\bob-ai-hackathon-Team-apex-main",
+      "cwd": "${workspaceFolder}",
       "disabled": false
     }
   }
