@@ -1,6 +1,10 @@
-# 🚀 [Your Project Title Here]
+# 🚀 SmartPort AI
 
-> ⚠️ **Replace everything in `[ ]` brackets with your actual content before submission.**
+> **Predict. Explain. Optimise. Act.**
+
+SmartPort AI is an AI-powered port operations decision-support platform designed to help port operations teams anticipate container congestion and take timely operational decisions.
+
+The platform combines machine-learning based congestion prediction with explainable operational factors, berth and crane optimisation, what-if analysis, and a 72-hour operational plan.
 
 ---
 
@@ -10,115 +14,205 @@
 |---|---|
 | **Team Name** | Team Apex |
 | **Track** | AI |
-| **Team Lead** | Dhariy - 25ce034@charusat.edu.in |
-| **Members** | Priyam, Krisha, Srushti |
+| **Problem Statement** | L1 — Container Congestion Predictor & Port Operations Optimiser |
+| **Team Lead** | Dhairy — 25ce034@charusat.edu.in |
+| **Member** | Priyam — 25it033@charusat.edu.in |
+| **Member** | Krisha — 25ce058@charusat.edu.in |
+| **Member** | Srushti — 25ce054@charusat.edu.in |
 
 ---
 
 ## 🎯 Problem Statement
 
-Port operations managers face the challenge of anticipating container congestion and making timely decisions about vessel berthing, crane allocation, and operational scheduling. High berth utilisation, vessel arrival density, container volume, and waiting times can create congestion that leads to vessel delays and inefficient use of port resources.
+Port operations managers need to continuously balance vessel arrivals, container volumes, berth utilisation, waiting times, and available cranes.
 
-SmartPort AI addresses this problem by helping port operations teams predict congestion before it becomes critical and make informed operational decisions.
+When vessel arrivals and container volumes increase while berth capacity becomes constrained, congestion can build rapidly. This can lead to:
+
+- Longer vessel waiting times
+- Inefficient berth utilisation
+- Poor crane allocation
+- Delays in vessel handling
+- Difficulty planning operations several hours in advance
+
+Traditional operational decisions can require manually analysing multiple operational factors at once.
+
+### Our Challenge
+
+The selected problem statement is:
+
+**L1 — Container Congestion Predictor & Port Operations Optimiser**
+
+The solution should help predict container congestion hotspots using vessel schedules and berth capacity, recommend alternate routing, optimise berth/crane assignment, and produce a 72-hour port operations plan.
 
 ---
 
 ## 💡 Solution
 
-SmartPort AI is an AI-powered port operations decision-support platform that predicts container congestion, explains the factors contributing to the risk, recommends better berth and crane assignments, and generates a 72-hour operational plan.
+**SmartPort AI** is an AI-powered decision-support platform for port operations.
 
-The platform connects prediction → explanation → optimisation → action, allowing a port operations manager to move from identifying a congestion hotspot to taking a recommended operational action.
+It follows a simple operational workflow:
+
+> **Predict → Explain → Optimise → Act**
+
+### 1. Predict
+
+The system analyses operational conditions such as:
+
+- Vessel count
+- Container count
+- Average waiting time
+- Berth utilisation
+
+A trained machine-learning model estimates the congestion risk and probability.
+
+### 2. Explain
+
+Instead of showing only a risk label, SmartPort AI identifies the operational conditions contributing to the predicted risk.
+
+For example:
+
+- High berth utilisation
+- High vessel count
+- High container volume
+- High average waiting time
+
+This gives an operations manager context behind the prediction.
+
+### 3. Optimise
+
+When congestion risk is high, the platform evaluates available operational resources and recommends actions such as:
+
+- Alternative berth assignment
+- Crane assignment
+- Operational adjustments
+- Alternative routing
+
+### 4. Act
+
+The system converts the analysis into a **72-hour operational plan**, helping the operations team understand what actions should be prioritised over the upcoming operating period.
 
 ---
 
 ## ✨ Key Features
 
-Congestion Risk Prediction: Uses a trained machine-learning model to estimate port/berth congestion risk from operational inputs such as vessel count, container volume, waiting time, and berth utilisation.
-72-Hour Congestion Forecast: Generates an hourly congestion outlook over the next 72 hours to help operators anticipate upcoming pressure.
-Explainable Congestion Analysis: Shows the operational factors contributing to a predicted congestion level instead of presenting the prediction as a black box.
-Berth Optimisation: Evaluates berth utilisation, capacity, and crane availability to recommend a more suitable berth and estimate potential waiting-time reduction.
-Crane Optimisation: Considers crane availability and operational demand when recommending crane assignments.
-72-Hour Operational Plan: Converts prediction and optimisation results into a time-based operational action plan.
-What-If Simulation: Allows operators to explore how changes in vessel arrival scenarios could affect congestion risk and recommended actions.
-Alternative Berth Routing: Identifies an alternative berth when the current berth is projected to experience higher congestion.
+### 🚢 Congestion Risk Prediction
+
+Uses a trained **Random Forest machine-learning model** to estimate congestion risk from operational inputs including:
+
+- Vessel count
+- Container count
+- Average waiting time
+- Berth utilisation
+
+The model provides both a congestion risk level and probability.
 
 ---
 
-## 🛠️ Tech Stack
+### 📈 72-Hour Congestion Forecast
 
-| Category | Technologies |
-|---|---|
-| **Languages** | Python, TypeScript |
-| **Frameworks** | FastAPI, React, Vite |
-| **IBM Technologies** | IBM Bob |
-| **Databases** | None |
-| **Other** | Scikit-learn, Pandas, Joblib, GitHub, Vercel, GitHub Actions |
+Generates an hourly congestion forecast for the next **72 hours**.
 
----
+Each forecast point contains:
 
-## 📁 Repository Structure
+- Hour
+- Berth
+- Congestion risk
+- Probability
+- Operational conditions
+- Contributing factors
 
-```
-├── src/                  # All source code
-├── docs/                 # Written documentation
-│   ├── problem-statement.md
-│   ├── solution-overview.md
-│   ├── architecture.md
-│   └── setup-guide.md
-├── demo/                 # Demo artifacts
-│   ├── screenshots/      # App screenshots
-│   └── demo-video-link.txt  # Link to demo video
-├── presentation/         # Slide deck
-└── submission.yaml       # Structured submission metadata
-```
+This allows operators to anticipate increasing congestion instead of reacting only after congestion occurs.
 
 ---
 
-## ⚡ How to Run
+### 🔍 Explainable Congestion Analysis
 
-> **Copy these exact steps from your [`docs/setup-guide.md`](docs/setup-guide.md)**
+SmartPort AI does not treat the prediction as a black box.
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/[your-repo].git
-cd [your-repo]
-
-# 2. Install dependencies
-[your install command here]
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your values
-
-# 4. Run the project
-[your run command here]
-```
+The platform displays operational factors contributing to the current congestion risk, allowing an operator to understand **why the system considers a situation risky**.
 
 ---
 
-## 🖥️ Demo
+### ⚓ Berth Optimisation
 
-| Artifact | Link |
-|---|---|
-| 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
-| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) |
-| 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
-| 📊 Presentation | [See presentation/slides.pdf](presentation/) |
+The system compares available berths using operational conditions such as:
 
----
+- Berth utilisation
+- Capacity
+- Crane availability
 
-## ⚠️ Known Limitations
+It recommends a more suitable berth when the current berth is under higher pressure.
 
-> Be honest — judges appreciate transparency over overclaiming.
-
-- [Limitation 1: e.g., "Authentication is mocked — not production-ready"]
-- [Limitation 2: e.g., "Only tested on Chrome"]
-- [Limitation 3: e.g., "Feature X is scaffolded but not fully implemented"]
+The optimisation output also estimates the potential waiting-time reduction associated with the recommendation.
 
 ---
 
-## 🏅 What We're Most Proud Of
+### 🏗️ Crane Optimisation
 
-[Tell the judges what part of your submission is strongest and worth paying close attention to.]
+The system considers available crane resources and operational demand to recommend an appropriate crane assignment.
+
+This helps reduce resource bottlenecks during congested operating conditions.
 
 ---
+
+### 🗺️ Alternative Berth Routing
+
+When the selected berth is projected to experience higher congestion, SmartPort AI can recommend an alternative berth to distribute operational pressure.
+
+---
+
+### 🔮 What-If Simulation
+
+Operators can explore alternative operating scenarios and observe how changing vessel arrival conditions can affect the predicted congestion risk.
+
+This supports scenario-based decision making before taking an operational action.
+
+---
+
+### 📋 72-Hour Operational Plan
+
+SmartPort AI converts prediction and optimisation results into a structured operational plan.
+
+The plan provides prioritised actions that can be used by port operations teams to manage expected congestion over the next 72 hours.
+
+---
+
+## 🧠 AI & Decision-Support Architecture
+
+The system combines machine learning with operational decision logic.
+
+```text
+                    ┌─────────────────────┐
+                    │    Port Operator    │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   React Dashboard   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      FastAPI        │
+                    │     Backend API     │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                ▼              ▼              ▼
+        ┌──────────────┐ ┌────────────┐ ┌──────────────┐
+        │ ML Prediction│ │ Forecast   │ │ Optimisation │
+        │ Random Forest│ │ 72 Hours   │ │ Berth/Crane │
+        └──────┬───────┘ └─────┬──────┘ └──────┬───────┘
+               │               │               │
+               └───────────────┼───────────────┘
+                               ▼
+                    ┌─────────────────────┐
+                    │ Operational Plan    │
+                    │      72 Hours       │
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │ Predict → Explain   │
+                    │ → Optimise → Act    │
+                    └─────────────────────┘
