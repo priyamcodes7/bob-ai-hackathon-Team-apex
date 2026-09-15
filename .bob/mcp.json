@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "smartport-ai": {
+      "command": "python",
+      "args": [
+        "-m",
+        "backend.mcp_server"
+      ],
+      "cwd": "${workspaceFolder}",
+      "disabled": false
+    }
+  }
+}
