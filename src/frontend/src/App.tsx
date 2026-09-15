@@ -1,8 +1,15 @@
 import { useState } from 'react';
+import {
+  metrics,
+  getBerthsData,
+  forecastData,
+  optimizationData,
+  planData as basePlanData,
+} from "./mockData";
 import type { ReactNode, ComponentType } from 'react';
-import { 
-  Activity, LayoutDashboard, Shuffle, Calendar, 
-  Ship, Anchor, Clock, ArrowRight, CheckCircle2, Info, 
+import {
+  Activity, LayoutDashboard, Shuffle, Calendar,
+  Ship, Anchor, Clock, ArrowRight, CheckCircle2, Info,
   ChevronRight, Navigation, GitMerge, BarChart2, ShieldAlert,
   Settings2, Maximize2
 } from 'lucide-react';
@@ -65,44 +72,6 @@ const colors = {
   riskCrit: '#EF4444'
 };
 
-// Mock Data Models
-const metrics = {
-  totalVessels: 37,
-  waitingVessels: 11,
-  berthUtil: 87,
-  yardUtil: 76
-};
-
-const getBerthsData = (isOptimized: boolean) => [
-  { id: 'B01', util: 42, risk: 'LOW', horizon: '72h', color: colors.riskLow },
-  { id: 'B02', util: 61, risk: 'MEDIUM', horizon: '48h', color: colors.riskMed },
-  { 
-    id: 'B03', 
-    util: isOptimized ? 64 : 87, 
-    risk: isOptimized ? 'MEDIUM' : 'HIGH', 
-    horizon: '24h', 
-    color: isOptimized ? colors.riskMed : colors.riskHigh,
-    isHotspot: !isOptimized 
-  },
-  { 
-    id: 'B04', 
-    util: isOptimized ? 73 : 61, 
-    risk: isOptimized ? 'MEDIUM' : 'LOW', 
-    horizon: '72h', 
-    color: isOptimized ? colors.riskMed : colors.riskLow 
-  }
-];
-
-const forecastData = [
-  { time: 'NOW', val: 87, risk: 'HIGH', color: colors.riskHigh },
-  { time: '6h', val: 65, risk: 'MEDIUM', color: colors.riskMed },
-  { time: '12h', val: 78, risk: 'HIGH', color: colors.riskHigh },
-  { time: '24h', val: 95, risk: 'CRITICAL', color: colors.riskCrit },
-  { time: '48h', val: 82, risk: 'HIGH', color: colors.riskHigh },
-  { time: '72h', val: 58, risk: 'MEDIUM', color: colors.riskMed }
-];
-
-
 const Card = ({ children, className = '', noPadding = false }: CardProps) => (
   <div className={`bg-[#122229] border border-[#284149] rounded-lg ${noPadding ? '' : 'p-5'} ${className}`}>
     {children}
@@ -154,13 +123,13 @@ const PortMap = ({ isOptimized, onBerthClick }: PortMapProps) => {
       <div className="flex-1 mt-14 bg-[#0A161C] relative p-4 flex flex-col">
         {/* Harbor / Water Area */}
         <div className="h-2/5 border-b-2 border-[#1A3037] relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiMxQTMwMzciLz48L3N2Zz4=')]">
-          
+
           {/* Incoming Vessel V204 */}
-          <div 
+          <div
             className={`absolute transition-all duration-1000 ease-in-out border ${isOptimized ? 'border-amber-500/50 bg-amber-500/10 text-amber-500' : 'border-orange-500/50 bg-orange-500/10 text-orange-500'} p-1.5 flex flex-col items-center justify-center`}
-            style={{ 
-              width: '80px', height: '36px', 
-              top: '40%', 
+            style={{
+              width: '80px', height: '36px',
+              top: '40%',
               left: isOptimized ? '75%' : '50%',
               transform: 'translate(-50%, -50%)'
             }}
@@ -191,7 +160,7 @@ const PortMap = ({ isOptimized, onBerthClick }: PortMapProps) => {
           <div className="flex-1 flex justify-center items-center border-t-4 border-amber-500">
             <div className="bg-[#122229] border border-[#284149] text-xs font-mono px-2 py-1 text-[#E9E5DC]">B02</div>
           </div>
-          <div 
+          <div
             className={`flex-1 flex justify-center items-center cursor-pointer transition-colors border-t-4 ${isOptimized ? 'border-amber-500' : 'border-orange-500 hover:bg-orange-500/10'}`}
             onClick={() => !isOptimized && onBerthClick('analysis')}
           >
@@ -220,7 +189,15 @@ const PortMap = ({ isOptimized, onBerthClick }: PortMapProps) => {
 
 
 const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
-  const berths = getBerthsData(isOptimized);
+  const berths = getBerthsData(isOptimized).map((berth) => ({
+  ...berth,
+  color:
+    berth.risk === "LOW"
+      ? colors.riskLow
+      : berth.risk === "MEDIUM"
+        ? colors.riskMed
+        : colors.riskHigh,
+}));
   const hotspot = berths.find(b => b.isHotspot);
 
   return (
@@ -259,7 +236,7 @@ const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => navigate('analysis')}
                 className="bg-orange-500 hover:bg-orange-600 text-[#081419] px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-2"
               >
@@ -268,7 +245,7 @@ const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
               </button>
             </div>
           )}
-          
+
           <div className="flex-1 min-h-[400px]">
             <PortMap isOptimized={isOptimized} onBerthClick={navigate} />
           </div>
@@ -284,11 +261,11 @@ const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
           </div>
           <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
             {berths.map((b) => (
-              <div 
-                key={b.id} 
+              <div
+                key={b.id}
                 className={`p-4 rounded border flex flex-col gap-3 transition-colors ${
-                  b.isHotspot 
-                    ? 'border-orange-500/50 bg-orange-500/5 cursor-pointer hover:bg-orange-500/10' 
+                  b.isHotspot
+                    ? 'border-orange-500/50 bg-orange-500/5 cursor-pointer hover:bg-orange-500/10'
                     : 'border-[#1A3037] bg-[#1A3037]/30'
                 }`}
                 onClick={() => b.isHotspot ? navigate('analysis') : null}
@@ -300,14 +277,14 @@ const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
                   </div>
                   <span className="text-xl font-light text-[#E9E5DC]">{b.util}%</span>
                 </div>
-                
+
                 <div className="w-full bg-[#081419] h-1.5 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full rounded-full transition-all duration-1000"
                     style={{ width: `${b.util}%`, backgroundColor: b.color }}
                   ></div>
                 </div>
-                
+
                 <div className="flex justify-between text-xs font-mono text-[#8299A0]">
                   <span>Forecast Window: {b.horizon}</span>
                   {b.isHotspot && (
@@ -330,12 +307,12 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
   return (
     <div className="flex flex-col gap-5 h-full animate-in fade-in duration-300">
       <div className="grid grid-cols-3 gap-5">
-        
+
         {/* Left Panel: The Prediction & Explanation */}
         <div className="col-span-1 flex flex-col gap-5">
           <Card>
             <SectionHeader title="Congestion Prediction" icon={ShieldAlert} />
-            
+
             <div className="mb-6 flex justify-between items-end border-b border-[#284149] pb-6">
               <div>
                 <div className="text-sm text-[#8299A0] font-mono mb-1">BERTH</div>
@@ -379,7 +356,7 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
               </ul>
             </div>
           </Card>
-          
+
           <Card className="bg-[#1A3037]/30 border-l-4 border-l-[#63C7B7]">
             <div className="flex items-start gap-3">
               <Info className="text-[#63C7B7] shrink-0 mt-0.5" size={18} />
@@ -389,7 +366,7 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
             </div>
           </Card>
 
-          <button 
+          <button
             onClick={() => navigate('optimisation')}
             className="w-full bg-[#63C7B7] hover:bg-[#4EAC9C] text-[#081419] p-4 rounded-lg font-medium transition-colors flex justify-center items-center gap-2"
           >
@@ -402,7 +379,7 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
         <div className="col-span-2 flex flex-col gap-5">
           <Card className="flex-1 flex flex-col">
             <SectionHeader title="72-Hour Congestion Forecast (B03)" icon={BarChart2} />
-            
+
             <div className="flex-1 flex items-end gap-2 pt-10 pb-8 px-4 relative min-h-[300px]">
               {/* Grid Lines */}
               <div className="absolute inset-0 pt-10 pb-8 px-4 flex flex-col justify-between pointer-events-none z-0">
@@ -420,10 +397,20 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
                   <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-[#081419] border border-[#284149] text-xs px-2 py-1 rounded text-[#E9E5DC] transition-opacity">
                     {d.val}%
                   </div>
-                  
-                  <div 
+
+                  <div
                     className="w-16 rounded-t-sm transition-all duration-500 relative"
-                    style={{ height: `${d.val}%`, backgroundColor: d.color }}
+                    style={{
+                      height: `${d.val}%`,
+                      backgroundColor:
+                      d.risk === "LOW"
+                      ? colors.riskLow
+                      : d.risk === "MEDIUM"
+                      ? colors.riskMed
+                      : d.risk === "HIGH"
+                      ? colors.riskHigh
+                      : colors.riskCrit,
+                    }}
                   >
                     {d.risk === 'CRITICAL' && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-red-500"></div>
@@ -433,7 +420,7 @@ const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
                 </div>
               ))}
             </div>
-            
+
             <div className="mt-4 p-4 bg-[#081419] rounded border border-[#284149] flex justify-between items-center">
                <span className="text-sm text-[#8299A0]">Critical threshold predicted at 24 hours. Early intervention required.</span>
                <RiskBadge risk="CRITICAL" />
@@ -476,44 +463,44 @@ const OptimisationView = ({ navigate, isOptimized, setIsOptimized }: Optimisatio
 
   return (
     <div className="flex flex-col gap-6 h-full max-w-5xl mx-auto animate-in fade-in duration-300">
-      
+
       <div className="text-center mb-4">
         <h2 className="text-2xl font-light text-[#E9E5DC] mb-2">Berth & Resource Recommendation</h2>
         <p className="text-[#8299A0]">System recommendation to mitigate 24h critical congestion at B03.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
-        
+
         {/* Current State Card */}
         <div className="md:col-span-3 bg-[#122229] border border-[#284149] rounded-xl p-6 relative opacity-70">
           <div className="absolute top-4 right-4"><RiskBadge risk="HIGH" /></div>
           <div className="text-xs text-[#8299A0] font-mono mb-4 uppercase">Current Assignment</div>
-          
+
           <div className="flex items-center gap-4 mb-6">
             <div className="bg-[#1A3037] p-3 rounded-lg"><Ship className="text-[#E9E5DC]" size={24} /></div>
             <div>
-              <div className="text-2xl text-[#E9E5DC] font-mono">V204</div>
+              <div className="text-2xl text-[#E9E5DC] font-mono">{optimizationData.vessel}</div>
               <div className="text-sm text-[#8299A0]">Container Vessel</div>
             </div>
           </div>
-          
+
           <div className="space-y-4 font-mono text-sm">
             <div className="flex justify-between border-b border-[#284149] pb-2">
               <span className="text-[#8299A0]">Target Berth</span>
               <span className={`font-medium text-lg ${isOptimized ? 'text-[#63C7B7]' : 'text-orange-500'}`}>
-                  {isOptimized ? 'B04' : 'B03'}
+                  {isOptimized ? optimizationData.recommendedBerth : optimizationData.currentBerth}
               </span>
             </div>
             <div className="flex justify-between border-b border-[#284149] pb-2">
               <span className="text-[#8299A0]">Est. Congestion</span>
               <span className={isOptimized ? 'text-[#63C7B7]' : 'text-orange-500'}>
-                  {isOptimized ? '64%' : '91%'}
+                  {isOptimized ? `${optimizationData.optimizedCongestion}%` : `${optimizationData.currentCongestion}%`}
               </span>
             </div>
             <div className="flex justify-between pb-2">
               <span className="text-[#8299A0]">Crane Alloc.</span>
               <span className={isOptimized ? 'text-[#D79A52]' : 'text-[#E9E5DC]'}>
-                  {isOptimized ? 'C06 → B04' : 'Standard'}
+                  {isOptimized ? optimizationData.optimizedCrane : optimizationData.currentCrane}
               </span>
             </div>
           </div>
@@ -530,27 +517,29 @@ const OptimisationView = ({ navigate, isOptimized, setIsOptimized }: Optimisatio
         <div className="md:col-span-3 bg-[#122229] border-2 border-[#63C7B7] rounded-xl p-6 relative shadow-[0_0_30px_rgba(99,199,183,0.1)]">
           <div className="absolute top-4 right-4 bg-[#63C7B7] text-[#081419] text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">Recommended</div>
           <div className="text-xs text-[#63C7B7] font-mono mb-4 uppercase">Optimised Route</div>
-          
+
           <div className="flex items-center gap-4 mb-6">
             <div className="bg-[#63C7B7]/20 p-3 rounded-lg"><Ship className="text-[#63C7B7]" size={24} /></div>
             <div>
-              <div className="text-2xl text-[#E9E5DC] font-mono">V204</div>
+              <div className="text-2xl text-[#E9E5DC] font-mono">{optimizationData.vessel}</div>
               <div className="text-sm text-[#63C7B7]">Re-routed</div>
             </div>
           </div>
-          
+
           <div className="space-y-4 font-mono text-sm">
             <div className="flex justify-between border-b border-[#284149] pb-2">
               <span className="text-[#8299A0]">Target Berth</span>
-              <span className="text-[#63C7B7] font-medium text-lg">B04 <span className="text-xs text-[#8299A0] font-sans font-normal ml-2">(Available Capacity)</span></span>
+              <span className="text-[#63C7B7] font-medium text-lg">{optimizationData.recommendedBerth}<span className="text-xs text-[#8299A0] font-sans font-normal ml-2">(Available Capacity)</span></span>
             </div>
             <div className="flex justify-between border-b border-[#284149] pb-2">
               <span className="text-[#8299A0]">Est. B03 Impact</span>
-              <span className="text-[#63C7B7]">↓ 64%</span>
+              <span className="text-[#63C7B7]">↓ {optimizationData.optimizedCongestion}%</span>
             </div>
             <div className="flex justify-between pb-2">
               <span className="text-[#8299A0]">Crane Alloc.</span>
-              <span className="text-[#D79A52]">Reassign C06 to B04</span>
+              <span className="text-[#D79A52]">
+                  Reassign {optimizationData.optimizedCrane}
+              </span>
             </div>
           </div>
         </div>
@@ -577,7 +566,7 @@ const OptimisationView = ({ navigate, isOptimized, setIsOptimized }: Optimisatio
                 <div className="text-sm opacity-80">V204 reassigned to B04. Plan updated.</div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => navigate('plan')}
               className="border border-[#284149] hover:bg-[#1A3037] text-[#E9E5DC] px-6 py-3 rounded-lg font-medium transition-colors"
             >
@@ -585,7 +574,7 @@ const OptimisationView = ({ navigate, isOptimized, setIsOptimized }: Optimisatio
             </button>
           </div>
         ) : (
-          <button 
+          <button
             onClick={handleApply}
             disabled={isApplying}
             className="bg-[#63C7B7] hover:bg-[#4EAC9C] text-[#081419] px-10 py-4 rounded-lg font-medium text-lg transition-all flex items-center gap-3 disabled:opacity-70"
@@ -601,34 +590,34 @@ const OptimisationView = ({ navigate, isOptimized, setIsOptimized }: Optimisatio
 
 
 const OperationalPlanView = ({ isOptimized }: OperationalPlanViewProps) => {
-  
+
   // Dynamic mock data based on optimization state
-  const planData = [
-    { day: 'TODAY', items: [
-      { time: '08:00', vessel: 'V201', berth: 'B02', resource: 'Crane C04', action: 'Berthing', priority: 'NORMAL' },
-      { 
-        time: '10:00', 
-        vessel: 'V204', 
-        berth: isOptimized ? 'B04' : 'B03', 
-        resource: isOptimized ? 'Crane C06' : 'Crane C03', 
-        action: isOptimized ? 'Berthing (reassigned)' : 'Berthing', 
-        priority: isOptimized ? 'MEDIUM' : 'HIGH',
-        highlight: isOptimized
-      },
-      { time: '12:30', vessel: 'N/A', berth: 'B03', resource: 'Crane C07', action: 'Maintenance window', priority: 'MEDIUM' },
-      { time: '15:00', vessel: 'V206', berth: 'B01', resource: 'Crane C02', action: 'Departure', priority: 'NORMAL' }
-    ]},
-    { day: 'TOMORROW', items: [
-      { time: '09:00', vessel: 'V209', berth: 'B01', resource: 'Crane C01', action: 'Berthing', priority: 'NORMAL' },
-      { time: '11:30', vessel: 'V211', berth: 'B04', resource: 'Crane C06', action: 'Berthing', priority: 'MEDIUM' },
-      { time: '14:00', vessel: 'V213', berth: 'B03', resource: 'Crane C07', action: 'Departure', priority: 'HIGH' }
-    ]},
-    { day: 'DAY 3', items: [
-      { time: '09:30', vessel: 'V215', berth: 'B02', resource: 'Crane C04', action: 'Berthing', priority: 'NORMAL' },
-      { time: '13:00', vessel: 'V219', berth: 'B04', resource: 'Crane C06', action: 'Berthing', priority: 'HIGH' },
-      { time: '16:30', vessel: 'V221', berth: 'B03', resource: 'Crane C03', action: 'Departure', priority: isOptimized ? 'HIGH' : 'CRITICAL' }
-    ]}
-  ];
+  const planData = basePlanData.map((dayGroup) => ({
+  ...dayGroup,
+  items: dayGroup.items.map((item) => {
+    if (item.vessel === optimizationData.vessel && item.time === "10:00") {
+      return {
+        ...item,
+        berth: isOptimized
+          ? optimizationData.recommendedBerth
+          : optimizationData.currentBerth,
+        resource: isOptimized ? "Crane C06" : "Crane C03",
+        action: isOptimized ? "Berthing (reassigned)" : "Berthing",
+        priority: isOptimized ? "MEDIUM" : "HIGH",
+        highlight: isOptimized,
+      };
+    }
+
+    if (item.vessel === "V221" && item.time === "16:30") {
+      return {
+        ...item,
+        priority: isOptimized ? "HIGH" : "CRITICAL",
+      };
+    }
+
+    return item;
+  }),
+}));
 
   return (
     <Card className="h-full flex flex-col overflow-hidden" noPadding>
@@ -650,7 +639,7 @@ const OperationalPlanView = ({ isOptimized }: OperationalPlanViewProps) => {
             <h3 className="text-sm font-mono text-[#D79A52] mb-3 uppercase tracking-wider border-b border-[#284149] pb-2">
               {dayGroup.day}
             </h3>
-            
+
             <div className="bg-[#081419] rounded-lg border border-[#1A3037] overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -665,8 +654,8 @@ const OperationalPlanView = ({ isOptimized }: OperationalPlanViewProps) => {
                 </thead>
                 <tbody className="text-sm">
                   {dayGroup.items.map((item, j) => (
-                    <tr 
-                      key={j} 
+                    <tr
+                      key={j}
                       className={`border-t border-[#1A3037] transition-colors
                         ${item.highlight ? 'bg-[#63C7B7]/5 hover:bg-[#63C7B7]/10' : 'hover:bg-[#122229]'}
                       `}
@@ -705,7 +694,7 @@ export default function SmartPortApp() {
 
   return (
     <div className="flex h-screen bg-[#081419] text-[#E9E5DC] font-sans overflow-hidden">
-      
+
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-[#122229] border-r border-[#284149] flex flex-col z-20">
         <div className="h-16 flex items-center px-6 border-b border-[#284149]">
@@ -714,7 +703,7 @@ export default function SmartPortApp() {
             <h1 className="text-lg font-medium tracking-wide text-white">SmartPort AI</h1>
           </div>
         </div>
-        
+
         <nav className="flex-1 py-6 flex flex-col gap-1 px-3">
           <div className="text-xs font-mono text-[#8299A0] uppercase tracking-wider px-3 mb-2">Operations</div>
           {tabs.map((tab) => (
@@ -722,8 +711,8 @@ export default function SmartPortApp() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-[#1A3037] text-[#63C7B7]' 
+                activeTab === tab.id
+                  ? 'bg-[#1A3037] text-[#63C7B7]'
                   : 'text-[#8299A0] hover:bg-[#1A3037]/50 hover:text-[#E9E5DC]'
               }`}
             >
@@ -751,7 +740,7 @@ export default function SmartPortApp() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
-        
+
         {/* Topbar */}
         <header className="h-16 bg-[#081419] border-b border-[#284149] flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-3 text-sm font-medium">
@@ -759,14 +748,14 @@ export default function SmartPortApp() {
              <ChevronRight size={14} className="text-[#284149]" />
              <span className="text-[#E9E5DC]">Live View</span>
           </div>
-          
+
           <div className="flex items-center gap-4">
              {/* Simulated Data Badge - subtle but clear */}
              <div className="bg-[#1A3037] border border-[#284149] text-[#8299A0] text-[10px] font-mono px-2 py-1 rounded uppercase tracking-widest flex items-center gap-2">
                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                Simulated Data
              </div>
-             
+
              <button className="text-[#8299A0] hover:text-[#E9E5DC] transition-colors"><Settings2 size={18} /></button>
              <button className="text-[#8299A0] hover:text-[#E9E5DC] transition-colors"><Maximize2 size={18} /></button>
           </div>
