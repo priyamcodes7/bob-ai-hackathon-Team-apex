@@ -23,32 +23,53 @@ submission:
     and inefficient port operations.
 
   solution_summary: >
-    SmartPort AI is an AI-powered decision-support platform that predicts
-    congestion, explains its causes, recommends operational changes, and
+    SmartPort AI is an AI-powered port operations decision-support platform
+    that predicts congestion, explains contributing operational factors,
+    recommends berth and crane changes, supports what-if scenarios, and
     generates a 72-hour port operations plan.
 
   key_features:
     - "Container congestion risk prediction"
     - "72-hour congestion forecasting"
-    - "Congestion explanation"
-    - "Berth and crane optimisation"
+    - "Explainable congestion analysis"
+    - "Berth optimisation"
+    - "Crane optimisation"
+    - "Alternative berth routing"
+    - "What-if simulation"
     - "72-hour operational planning"
 
   tech_stack:
-    languages: ["Python", "TypeScript"]
-    frameworks: ["FastAPI", "React", "Vite"]
-    ibm_technologies: ["IBM Bob"]
+    languages:
+      - "Python"
+      - "TypeScript"
+    frameworks:
+      - "FastAPI"
+      - "React"
+      - "Vite"
+    ibm_technologies:
+      - "IBM Bob"
+      - "Model Context Protocol (MCP)"
     databases: []
-    other: ["GitHub", "Vercel"]
+    other:
+      - "Scikit-learn"
+      - "Pandas"
+      - "Joblib"
+      - "GitHub"
+      - "GitHub Actions"
+      - "Vercel"
+      - "Render"
 
   what_we_are_most_proud_of: >
     An end-to-end decision-support workflow that connects congestion
-    prediction with operational recommendations and a 72-hour action plan.
+    prediction with explainable operational factors, berth and crane
+    recommendations, what-if analysis, and a 72-hour action plan.
 
   known_limitations: >
-    Initial versions use simulated or synthetic port data and some
-    optimisation assumptions. Real-world deployment would require
-    integration with live port and vessel data.
+    The current prototype uses structured or simulated port operational
+    data rather than live port feeds. The 72-hour forecast is scenario-based,
+    operational explanations are rule-based, and berth and crane optimisation
+    uses decision logic and heuristics. Production deployment would require
+    integration with live vessel, berth, crane, and terminal operating data.
 
 artifacts:
   source_code: "src/"
