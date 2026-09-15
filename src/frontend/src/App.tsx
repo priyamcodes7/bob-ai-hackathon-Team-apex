@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { predictCongestion, getCongestion } from './api';
+import type { PortData, PredictionResponse } from './api';
 import {
   metrics,
   getBerthsData,
-  forecastData,
   optimizationData,
   planData as basePlanData,
 } from "./mockData";
@@ -141,8 +142,27 @@ const PortMap = ({ isOptimized, onBerthClick }: PortMapProps) => {
           {/* Navigation Paths */}
           {!isOptimized && (
              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-               <path d="M 50% 50% L 50% 100%" stroke="#F97316" strokeWidth="2" strokeDasharray="4 4" fill="none" className="opacity-50" />
-               <path d="M 50% 50% L 75% 100%" stroke="#63C7B7" strokeWidth="1" strokeDasharray="2 4" fill="none" className="opacity-30" />
+               <line
+                x1="50%"
+                y1="50%"
+                x2="50%"
+                y2="100%"
+                stroke="#F97316"
+                strokeWidth="2"
+                strokeDasharray="4 4"
+                className="opacity-50"
+              />
+
+              <line
+                x1="50%"
+                y1="50%"
+                x2="75%"
+                y2="100%"
+                stroke="#63C7B7"
+                strokeWidth="1"
+                strokeDasharray="2 4"
+                className="opacity-30"
+              />
              </svg>
           )}
           {isOptimized && (
@@ -304,145 +324,375 @@ const DashboardView = ({ navigate, isOptimized }: DashboardViewProps) => {
 
 
 const CongestionAnalysisView = ({ navigate }: CongestionAnalysisViewProps) => {
+  const [portData, setPortData] = useState<PortData>({
+    vessel_count: 80,
+    container_count: 400,
+    avg_waiting_time: 18,
+    berth_utilization: 87,
+    berth: "B03",
+    crane_availability: 2,
+    vessel_arrival_density: 75,
+  });
+
+  const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
+  const [forecast, setForecast] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+     const result = await predictCongestion(portData);
+setPrediction(result);
+
+const forecastResult = await getCongestion(portData);
+setForecast(forecastResult.forecast || []);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to analyze port conditions"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const risk = prediction?.risk?.toUpperCase() || "HIGH";
+  const probability = prediction
+    ? Math.round(prediction.probability * 100)
+    : 91;
+
   return (
-    <div className="flex flex-col gap-5 h-full animate-in fade-in duration-300">
+    <div className="flex flex-col gap-5 h-full animate-in fade-in duration-300 overflow-y-auto">
+
+      {/* UPDATE PORT CONDITIONS */}
+      <Card>
+        <SectionHeader title="Update Port Conditions" icon={Settings2} />
+
+        <div className="grid grid-cols-3 gap-4">
+
+          <div>
+  <label
+    htmlFor="vessel-count"
+    className="text-xs text-[#8299A0] uppercase tracking-wide"
+  >
+    Vessel Count
+  </label>
+
+  <input
+    id="vessel-count"
+    name="vessel_count"
+    type="number"
+    value={portData.vessel_count}
+    onChange={(e) =>
+      setPortData({
+        ...portData,
+        vessel_count: Number(e.target.value),
+      })
+    }
+    className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+  />
+</div>
+
+          <div>
+            <label className="text-xs text-[#8299A0] uppercase tracking-wide">
+              Container Count
+            </label>
+            <input
+              type="number"
+              value={portData.container_count}
+              onChange={(e) =>
+                setPortData({
+                  ...portData,
+                  container_count: Number(e.target.value),
+                })
+              }
+              className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-[#8299A0] uppercase tracking-wide">
+              Avg Waiting Time (min)
+            </label>
+            <input
+              type="number"
+              value={portData.avg_waiting_time}
+              onChange={(e) =>
+                setPortData({
+                  ...portData,
+                  avg_waiting_time: Number(e.target.value),
+                })
+              }
+              className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-[#8299A0] uppercase tracking-wide">
+              Berth Utilisation (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={portData.berth_utilization}
+              onChange={(e) =>
+                setPortData({
+                  ...portData,
+                  berth_utilization: Number(e.target.value),
+                })
+              }
+              className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-[#8299A0] uppercase tracking-wide">
+              Crane Availability
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={portData.crane_availability}
+              onChange={(e) =>
+                setPortData({
+                  ...portData,
+                  crane_availability: Number(e.target.value),
+                })
+              }
+              className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-[#8299A0] uppercase tracking-wide">
+              Vessel Arrival Density
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={portData.vessel_arrival_density}
+              onChange={(e) =>
+                setPortData({
+                  ...portData,
+                  vessel_arrival_density: Number(e.target.value),
+                })
+              }
+              className="mt-2 w-full bg-[#081419] border border-[#284149] rounded px-3 py-2 text-[#E9E5DC] font-mono outline-none focus:border-[#63C7B7]"
+            />
+          </div>
+
+        </div>
+
+        <button
+          onClick={handleAnalyze}
+          disabled={loading}
+          className="mt-5 w-full bg-[#63C7B7] hover:bg-[#4EAC9C] disabled:opacity-50 text-[#081419] p-3 rounded-lg font-medium transition-colors"
+        >
+          {loading ? "Analyzing Port Conditions..." : "Analyze New Conditions"}
+        </button>
+
+        {error && (
+          <div className="mt-3 p-3 rounded border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+      </Card>
+
       <div className="grid grid-cols-3 gap-5">
 
-        {/* Left Panel: The Prediction & Explanation */}
+        {/* LEFT: PREDICTION */}
         <div className="col-span-1 flex flex-col gap-5">
+
           <Card>
             <SectionHeader title="Congestion Prediction" icon={ShieldAlert} />
 
             <div className="mb-6 flex justify-between items-end border-b border-[#284149] pb-6">
               <div>
-                <div className="text-sm text-[#8299A0] font-mono mb-1">BERTH</div>
-                <div className="text-4xl text-[#E9E5DC] font-mono">B03</div>
+                <div className="text-sm text-[#8299A0] font-mono mb-1">
+                  BERTH
+                </div>
+                <div className="text-4xl text-[#E9E5DC] font-mono">
+                  {portData.berth}
+                </div>
               </div>
+
               <div className="text-right">
-                <RiskBadge risk="HIGH" size="lg" />
-                <div className="text-sm text-[#8299A0] font-mono mt-2">24h FORECAST</div>
+                <RiskBadge risk={risk} size="lg" />
+                <div className="text-sm text-[#8299A0] font-mono mt-2">
+                  24h FORECAST
+                </div>
               </div>
             </div>
 
             <div className="mb-6">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-[#8299A0]">Peak Congestion Probability</span>
-                <span className="text-orange-500 font-mono text-lg">91%</span>
+                <span className="text-[#8299A0]">
+                  Congestion Probability
+                </span>
+                <span className="text-orange-500 font-mono text-lg">
+                  {probability}%
+                </span>
               </div>
+
               <div className="w-full bg-[#081419] h-2 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full" style={{ width: '91%' }}></div>
+                <div
+                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: `${probability}%` }}
+                />
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm uppercase tracking-wide text-[#8299A0] mb-3">Contributing Factors</h3>
-              <ul className="flex flex-col gap-2 font-mono text-xs">
-                <li className="flex justify-between p-2 bg-[#1A3037]/50 rounded">
-                  <span className="text-[#E9E5DC]">Vessel arrival density</span>
-                  <span className="text-orange-500">HIGH</span>
-                </li>
-                <li className="flex justify-between p-2 bg-[#1A3037]/50 rounded">
-                  <span className="text-[#E9E5DC]">Current berth utilisation</span>
-                  <span className="text-orange-500">HIGH</span>
-                </li>
-                <li className="flex justify-between p-2 bg-[#1A3037]/50 rounded">
-                  <span className="text-[#E9E5DC]">Waiting vessels</span>
-                  <span className="text-orange-500">HIGH</span>
-                </li>
-                <li className="flex justify-between p-2 bg-[#1A3037]/50 rounded">
-                  <span className="text-[#E9E5DC]">Crane availability</span>
-                  <span className="text-amber-500">MEDIUM</span>
-                </li>
-              </ul>
+              <h3 className="text-sm uppercase tracking-wide text-[#8299A0] mb-3">
+                Contributing Factors
+              </h3>
+
+              {prediction?.factors?.length ? (
+                <ul className="flex flex-col gap-2 font-mono text-xs">
+                  {prediction.factors.map((factor, index) => (
+                  <li
+                    key={index}
+                    className="p-2 bg-[#1A3037]/50 rounded text-[#E9E5DC]"
+                  >
+                    {factor}
+                  </li>
+              ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-[#8299A0]">
+                  Enter operational conditions and analyze to generate AI factors.
+                </div>
+              )}
             </div>
           </Card>
 
           <Card className="bg-[#1A3037]/30 border-l-4 border-l-[#63C7B7]">
             <div className="flex items-start gap-3">
-              <Info className="text-[#63C7B7] shrink-0 mt-0.5" size={18} />
+              <Info
+                className="text-[#63C7B7] shrink-0 mt-0.5"
+                size={18}
+              />
+
               <p className="text-sm text-[#E9E5DC] leading-relaxed">
-                <strong className="font-medium text-white">Explanation:</strong> B03 is at high risk because multiple vessels are scheduled during the 24h forecast window while current berth utilisation is already high. Available crane capacity is also limited, creating a bottleneck.
+                <strong className="font-medium text-white">
+                  AI Analysis:
+                </strong>{" "}
+                {prediction
+                  ? `The Random Forest model predicts ${risk} congestion for ${portData.berth} with ${probability}% probability based on the submitted operational conditions.`
+                  : "Submit new port conditions to generate an AI congestion prediction."}
               </p>
             </div>
           </Card>
 
           <button
-            onClick={() => navigate('optimisation')}
+            onClick={() => navigate("optimisation")}
             className="w-full bg-[#63C7B7] hover:bg-[#4EAC9C] text-[#081419] p-4 rounded-lg font-medium transition-colors flex justify-center items-center gap-2"
           >
             <Shuffle size={18} />
             View Berth Optimisation
           </button>
+
         </div>
 
-        {/* Right Panel: 72-Hour Forecast Chart & What-If */}
+        {/* RIGHT SIDE */}
         <div className="col-span-2 flex flex-col gap-5">
+
           <Card className="flex-1 flex flex-col">
-            <SectionHeader title="72-Hour Congestion Forecast (B03)" icon={BarChart2} />
+            <SectionHeader
+              title={`72-Hour Congestion Forecast (${portData.berth})`}
+              icon={BarChart2}
+            />
 
-            <div className="flex-1 flex items-end gap-2 pt-10 pb-8 px-4 relative min-h-[300px]">
-              {/* Grid Lines */}
-              <div className="absolute inset-0 pt-10 pb-8 px-4 flex flex-col justify-between pointer-events-none z-0">
-                {[100, 75, 50, 25, 0].map(val => (
-                  <div key={val} className="border-b border-[#284149]/50 w-full flex items-center">
-                    <span className="absolute -left-6 text-[10px] text-[#8299A0] font-mono">{val}%</span>
-                  </div>
-                ))}
-              </div>
+            <div className="flex-1 flex items-end gap-1 pt-10 pb-8 px-4 min-h-[300px]">
+  {forecast.length > 0 ? (
+    forecast.map((d, i) => {
+      const value =
+        Number(d.probability ?? d.value ?? d.val ?? 0) * 100;
 
-              {/* Chart Bars */}
-              {forecastData.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col justify-end items-center gap-3 relative z-10 h-full group">
-                  {/* Tooltip on hover */}
-                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-[#081419] border border-[#284149] text-xs px-2 py-1 rounded text-[#E9E5DC] transition-opacity">
-                    {d.val}%
-                  </div>
+      const risk = String(
+        d.risk ?? d.congestion_level ?? "LOW"
+      ).toUpperCase();
 
-                  <div
-                    className="w-16 rounded-t-sm transition-all duration-500 relative"
-                    style={{
-                      height: `${d.val}%`,
-                      backgroundColor:
-                      d.risk === "LOW"
-                      ? colors.riskLow
-                      : d.risk === "MEDIUM"
-                      ? colors.riskMed
-                      : d.risk === "HIGH"
-                      ? colors.riskHigh
-                      : colors.riskCrit,
-                    }}
-                  >
-                    {d.risk === 'CRITICAL' && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-red-500"></div>
-                    )}
-                  </div>
-                  <div className="text-xs font-mono text-[#8299A0]">{d.time}</div>
-                </div>
-              ))}
-            </div>
+      return (
+        <div
+          key={i}
+          className="flex-1 flex flex-col justify-end items-center gap-2 h-full group"
+        >
+          <div
+            className="w-full max-w-[18px] rounded-t-sm"
+            style={{
+              height: `${Math.max(4, value)}%`,
+              backgroundColor:
+                risk === "LOW"
+                  ? colors.riskLow
+                  : risk === "MEDIUM"
+                  ? colors.riskMed
+                  : risk === "HIGH"
+                  ? colors.riskHigh
+                  : colors.riskCrit,
+            }}
+            title={`Hour ${i}: ${value.toFixed(0)}% ${risk}`}
+          />
+
+          {i % 12 === 0 && (
+            <span className="text-[9px] text-[#8299A0] font-mono">
+              {i}h
+            </span>
+          )}
+        </div>
+      );
+    })
+  ) : (
+    <div className="w-full h-full flex items-center justify-center text-[#8299A0]">
+      Analyze the new port conditions to generate the 72-hour forecast.
+    </div>
+  )}
+</div>
 
             <div className="mt-4 p-4 bg-[#081419] rounded border border-[#284149] flex justify-between items-center">
-               <span className="text-sm text-[#8299A0]">Critical threshold predicted at 24 hours. Early intervention required.</span>
-               <RiskBadge risk="CRITICAL" />
+              <span className="text-sm text-[#8299A0]">
+                {prediction
+                  ? `Current prediction: ${risk} congestion risk`
+                  : "Awaiting new operational data"}
+              </span>
+
+              <RiskBadge risk={risk} />
             </div>
           </Card>
 
-          {/* Restrained What-If Simulation */}
           <Card>
             <SectionHeader title="What-If Simulation" icon={GitMerge} />
+
             <div className="grid grid-cols-2 gap-4">
+
               <div className="p-4 bg-[#081419] rounded border border-[#284149]">
-                <div className="text-xs text-[#8299A0] uppercase mb-2 tracking-wide">Scenario A: Stay at B03</div>
-                <div className="text-sm text-[#E9E5DC] mb-1">Projected congestion: <span className="text-red-500 font-mono">91% → 96%</span></div>
-                <div className="text-sm text-[#E9E5DC]">Expected wait time: <span className="text-red-500 font-mono">+48 min</span></div>
+                <div className="text-xs text-[#8299A0] uppercase mb-2 tracking-wide">
+                  Scenario A: Stay at {portData.berth}
+                </div>
+
+                <div className="text-sm text-[#8299A0]">
+                  Run an analysis to compare operational scenarios.
+                </div>
               </div>
+
               <div className="p-4 bg-[#1A3037]/50 rounded border border-[#63C7B7]/50">
-                <div className="text-xs text-[#63C7B7] uppercase mb-2 tracking-wide">Scenario B: Move to B04 (Recommended)</div>
-                <div className="text-sm text-[#E9E5DC] mb-1">Projected B03 congestion: <span className="text-[#63C7B7] font-mono">91% → 64%</span></div>
-                <div className="text-sm text-[#E9E5DC]">Expected wait time: <span className="text-[#63C7B7] font-mono">↓ 34 min</span></div>
+                <div className="text-xs text-[#63C7B7] uppercase mb-2 tracking-wide">
+                  Scenario B: Optimised Berth
+                </div>
+
+                <div className="text-sm text-[#8299A0]">
+                  Optimisation results will be shown after analysis.
+                </div>
               </div>
+
             </div>
           </Card>
+
         </div>
       </div>
     </div>
