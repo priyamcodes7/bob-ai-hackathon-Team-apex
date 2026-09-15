@@ -17,27 +17,89 @@
 
 ## 🎯 Problem Statement
 
-> In 2–3 sentences: What problem does your project solve? Who experiences this problem?
+Container ports must continuously coordinate vessels, berths, cranes, and container movement under changing operational conditions. High vessel arrival density, increasing container volumes, limited berth capacity, and crane availability can create congestion, increasing vessel waiting time and reducing port throughput.
 
-[Describe the real-world problem your project addresses. Be specific about who the user is and what pain point they face.]
+Port operations managers need a way to anticipate congestion before it becomes critical and translate predictions into practical operational decisions such as berth reassignment, crane allocation, alternative berth routing, and short-term operational planning.
 
 ---
 
 ## 💡 Solution
 
-> In 2–3 sentences: What did you build? How does it solve the problem above?
+SmartPort AI combines a trained machine-learning congestion predictor with operational decision-support services.
 
-[Describe your solution clearly. Explain the core mechanism — what makes it work.]
+The platform follows the workflow:
+
+Predict → Explain → Optimise → Act
+
+It predicts congestion risk from operational conditions, identifies key operational factors contributing to the risk, produces a 72-hour scenario-based forecast, recommends better berth and crane assignments, evaluates alternative berth routing, supports What-If scenarios, and generates a coordinated 72-hour operational plan.
 
 ---
 
 ## ✨ Key Features
 
-- **Feature 1:** [Brief description — e.g., "Real-time anomaly detection using watsonx.ai"]
-- **Feature 2:** [Brief description]
-- **Feature 3:** [Brief description]
-- **Feature 4:** [Optional]
-- **Feature 5:** [Optional]
+🤖 AI Congestion Prediction
+
+Predicts port/berth congestion risk using operational features including:
+Vessel count
+Container volume
+Average vessel waiting time
+Berth utilisation
+The prediction service uses a trained Random Forest classifier and its class probabilities.
+
+🔎 Congestion Explanation
+
+Provides key operational factors associated with the predicted congestion, such as:
+High berth utilisation
+High vessel waiting time
+High container volume
+High vessel count
+
+📈 72-Hour Congestion Forecast
+
+Generates an hourly 72-hour operational scenario forecast using the trained congestion model and simulated operational trends.
+The forecast provides:
+Risk level
+Probability
+Operational conditions
+Key factors
+
+⚓ Berth Optimisation
+
+Evaluates available berths using operational factors such as:
+Projected utilisation
+Berth capacity
+Available crane capacity and recommends a berth that can reduce operational pressure.
+
+🏗️ Crane Optimisation
+
+Recommends an available crane based on:
+Berth
+Crane availability
+Container workload
+Crane capacity
+
+🔀 Alternative Berth Routing
+
+Identifies whether moving a vessel toward an alternative operational berth can provide a meaningful reduction in congestion pressure.
+This feature represents operational berth routing, not maritime navigation.
+
+🧪 What-If Simulation
+
+Allows operators to explore scenarios such as changing a vessel's arrival time and evaluate the resulting operational conditions and congestion prediction.
+
+📋 72-Hour Operational Plan
+
+Combines forecast, berth optimisation, crane assignment, and routing recommendations into a coordinated action plan for the next 72 hours.
+
+🤖 IBM Bob + MCP Integration
+
+SmartPort AI exposes operational capabilities through an MCP server, allowing IBM Bob to interact with SmartPort AI capabilities including:
+
+Congestion prediction
+Berth optimisation
+Crane optimisation
+What-If simulation
+72-hour operational planning
 
 ---
 
