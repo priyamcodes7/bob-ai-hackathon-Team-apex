@@ -1,7 +1,15 @@
 import math
 from typing import List
 
-from .prediction import predict_congestion
+import pandas as pd
+
+from .prediction import (
+    model,
+    EXPECTED_FEATURES,
+    _validate_inputs,
+    _build_operational_factors,
+)
+from .risk import normalize_risk_level
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
@@ -19,23 +27,28 @@ def generate_forecast(
     """
     Generate a scenario-based operational congestion forecast.
 
-    IMPORTANT:
-    This is NOT a historical time-series forecasting model.
-
-    Hour 0 always represents the exact current input state.
-    Future hours use bounded, deterministic operational scenarios
-    with gradual trends and daily variation.
+    Uses one batched Random Forest prediction for all forecast hours
+    instead of calling the ML model separately for every hour.
     """
 
     if hours <= 0:
         return []
 
-    forecast = []
+    # Validate the starting conditions once.
+    _validate_inputs(
+        vessel_count,
+        container_count,
+        avg_waiting_time,
+        berth_utilization,
+    )
 
+    scenarios = []
+
+    # ---------------------------------------------------------------
+    # Generate all future operational scenarios first.
+    # ---------------------------------------------------------------
     for hour in range(hours):
-        # -----------------------------------------------------------
-        # HOUR 0 = EXACT CURRENT STATE
-        # -----------------------------------------------------------
+
         if hour == 0:
             future_vessel_count = vessel_count
             future_container_count = container_count
@@ -43,12 +56,6 @@ def generate_forecast(
             future_berth_utilization = float(berth_utilization)
 
         else:
-            # -------------------------------------------------------
-            # Future scenario:
-            # - gradual operational drift
-            # - bounded daily variation
-            # - deterministic/reproducible
-            # -------------------------------------------------------
             daily_wave = math.sin(
                 (2 * math.pi * hour) / 24
             )
@@ -57,7 +64,6 @@ def generate_forecast(
                 (2 * math.pi * hour) / 48
             )
 
-            # Small gradual pressure trend over time.
             pressure_trend = min(
                 1.0,
                 hour / max(1, hours - 1),
@@ -116,31 +122,124 @@ def generate_forecast(
                 1,
             )
 
-        # -----------------------------------------------------------
-        # Actual ML prediction for each scenario.
-        # -----------------------------------------------------------
-        prediction = predict_congestion(
-            vessel_count=int(future_vessel_count),
-            container_count=int(future_container_count),
-            avg_waiting_time=float(future_waiting_time),
-            berth_utilization=float(future_berth_utilization),
+        scenarios.append(
+            {
+                "hour": hour,
+                "berth": berth,
+                "vessel_count": int(future_vessel_count),
+                "container_count": int(future_container_count),
+                "avg_waiting_time": float(future_waiting_time),
+                "berth_utilization": float(
+                    future_berth_utilization
+                ),
+            }
+        )
+
+    # ---------------------------------------------------------------
+    # ONE batched ML prediction for all forecast hours.
+    # ---------------------------------------------------------------
+    input_data = pd.DataFrame(
+        [
+            {
+                "vessel_count": item["vessel_count"],
+                "container_count": item["container_count"],
+                "avg_waiting_time": item["avg_waiting_time"],
+                "berth_utilization": item["berth_utilization"],
+            }
+            for item in scenarios
+        ],
+        columns=EXPECTED_FEATURES,
+    )
+
+    # Safety check for model/schema compatibility.
+    model_features = list(
+        getattr(model, "feature_names_in_", [])
+    )
+
+    if model_features and model_features != EXPECTED_FEATURES:
+        raise RuntimeError(
+            "Model feature mismatch. "
+            f"Expected {EXPECTED_FEATURES}, "
+            f"but model uses {model_features}."
+        )
+
+    predictions = model.predict(input_data)
+
+    # One probability calculation for all 72 rows.
+    if hasattr(model, "predict_proba"):
+        probability_matrix = model.predict_proba(
+            input_data
+        )
+
+        classes = [
+            normalize_risk_level(str(value))
+            for value in model.classes_
+        ]
+    else:
+        probability_matrix = None
+        classes = []
+
+    # ---------------------------------------------------------------
+    # Build the final 72-hour response.
+    # ---------------------------------------------------------------
+    forecast = []
+
+    for index, scenario in enumerate(scenarios):
+
+        raw_level = str(predictions[index])
+
+        congestion_level = normalize_risk_level(
+            raw_level
+        )
+
+        if probability_matrix is not None:
+
+            if congestion_level not in classes:
+                raise RuntimeError(
+                    "Predicted class is not present "
+                    "in model.classes_."
+                )
+
+            predicted_index = classes.index(
+                congestion_level
+            )
+
+            probability = float(
+                probability_matrix[index][predicted_index]
+            )
+
+        else:
+            probability = 1.0
+
+        probability = round(
+            max(0.0, min(1.0, probability)),
+            3,
+        )
+
+        factors = _build_operational_factors(
+            scenario["vessel_count"],
+            scenario["container_count"],
+            scenario["avg_waiting_time"],
+            scenario["berth_utilization"],
         )
 
         forecast.append(
             {
-                "hour": hour,
-                "berth": berth,
-                "risk": prediction["congestion_level"],
-                "probability": prediction["probability"],
+                "hour": scenario["hour"],
+                "berth": scenario["berth"],
+                "risk": congestion_level,
+                "probability": probability,
                 "conditions": {
-                    "vessel_count": int(future_vessel_count),
-                    "container_count": int(future_container_count),
-                    "avg_waiting_time": float(future_waiting_time),
-                    "berth_utilization": float(
-                        future_berth_utilization
-                    ),
+                    "vessel_count": scenario["vessel_count"],
+                    "container_count": scenario["container_count"],
+                    "avg_waiting_time": scenario[
+                        "avg_waiting_time"
+                    ],
+                    "berth_utilization": scenario[
+                        "berth_utilization"
+                    ],
                 },
-                "factors": prediction["factors"],
+                "factors": factors,
             }
         )
 
